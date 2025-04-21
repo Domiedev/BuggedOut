@@ -290,22 +290,6 @@ function drawEnemy(enemy) {
 // --- Stelle sicher, dass die zweite, fehlerhafte Kopie von drawEnemy gelöscht ist! ---
 
 
-    ctx.restore(); // Wichtig! Zustand wiederherstellen, bevor Balken/Effekte gezeichnet werden
-
-    // Lebensbalken (wird über der ursprünglichen Position gezeichnet)
-    const healthBarWidth = enemy.width;
-    const healthBarHeight = 5;
-    const barX = enemy.x;
-    const barY = enemy.y - healthBarHeight - 2;
-    const healthPercentage = Math.max(0, enemy.currentHealth / enemy.maxHealth);
-    drawRect(barX, barY, healthBarWidth, healthBarHeight, '#555');
-    drawRect(barX, barY, healthBarWidth * healthPercentage, healthBarHeight, 'lime');
-
-    // Statuseffekte (werden über der ursprünglichen Position gezeichnet)
-    if (enemy.statusEffects.burning?.duration > 0) { ctx.strokeStyle = 'orange'; ctx.lineWidth = 2; ctx.strokeRect(enemy.x - 1, enemy.y - 1, enemy.width + 2, enemy.height + 2); }
-    if (enemy.statusEffects.slowed?.duration > 0) { drawRect(enemy.x, enemy.y, enemy.width, enemy.height, 'rgba(0, 0, 255, 0.2)'); }
-    ctx.lineWidth = 1;
-}
 
 
 function drawProjectile(p) { drawRect(p.x, p.y, p.width, p.height, p.color); }
