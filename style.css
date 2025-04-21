@@ -1,14 +1,156 @@
+/* style.css */
+
+/* Grundlegendes Body-Styling */
 body {
     display: flex;
-    flex-direction: column; /* Titel über dem Canvas */
-    justify-content: center;
-    align-items: center;
-    height: 100vh; /* Zentriert vertikal auf der Seite */
-    margin: 0;
-    background-color: #f0f0f0; /* Heller Hintergrund */
+    flex-direction: column;
+    align-items: center; /* Zentriert Elemente horizontal */
+    font-family: sans-serif;
+    background-color: #f0f0f0;
+    margin: 0; /* Entfernt Standard-Body-Margin */
+    padding-top: 20px; /* Etwas Platz oben */
 }
 
+/* Canvas Styling */
 canvas {
-    border: 1px solid black; /* Ein Rand um das Spielfeld */
-    background-color: #ddd; /* Grauer Hintergrund für das Spiel */
+    border: 1px solid black;
+    background-color: #ddd; /* Heller grauer Hintergrund für das Spielfeld */
+    /* Zentrierung wird durch body align-items erreicht */
 }
+
+/* Container für die permanenten UI-Buttons */
+#ui-layer {
+    position: relative; /* Wichtig für potenzielle Kind-Positionierung */
+    text-align: center; /* Zentriert die Buttons innerhalb des Divs */
+    margin-top: 15px;  /* Abstand zum Canvas */
+    min-height: 100px; /* Verhindert Layout-Sprünge, wenn Buttons erscheinen/verschwinden */
+    width: 100%; /* Nimmt volle Breite für Zentrierung */
+}
+
+/* Buttons (Play/Retry) */
+#playButton,
+#retryButton {
+    display: none; /* Initial versteckt, JS steuert das */
+    padding: 15px 30px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    background-color: #4CAF50; /* Grün */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0 4px #999; /* Einfacher 3D-Effekt */
+    margin: 5px; /* Kleiner Abstand zwischen Buttons */
+}
+
+#playButton:hover,
+#retryButton:hover {
+    background-color: #45a049; /* Etwas dunkler bei Hover */
+}
+
+#playButton:active,
+#retryButton:active {
+    background-color: #3e8e41; /* Noch dunkler bei Klick */
+    box-shadow: 0 2px #666; /* Reduzierter Schatten für "gedrückt"-Effekt */
+    transform: translateY(2px); /* Leichte Verschiebung nach unten */
+}
+
+/* Perk Auswahl Box */
+#perkSelection {
+    display: none; /* Initial versteckt */
+    border: 2px solid #555;
+    border-radius: 8px;
+    padding: 15px;
+    background: rgba(220, 220, 220, 0.95); /* Heller grauer Hintergrund, leicht transparent */
+    margin-top: 10px;
+    display: inline-block; /* Nimmt nur die benötigte Breite */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Weicher Schatten */
+}
+
+#perkSelection h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333; /* Dunkelgraue Überschrift */
+}
+
+/* Perk-Buttons */
+.perkButton {
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    margin: 5px;
+    border: 1px solid #aaa; /* Heller grauer Rand */
+    border-radius: 4px;
+    background-color: #f0f0f0; /* Sehr heller Hintergrund */
+    transition: background-color 0.2s ease; /* Sanfter Übergang bei Hover */
+}
+
+.perkButton:hover {
+    background-color: #ddd; /* Etwas dunkler bei Hover */
+    border-color: #888; /* Dunklerer Rand bei Hover */
+}
+
+
+/* ---- POPUP STYLES ---- */
+
+/* Allgemeiner Popup Style */
+.popup {
+    display: none; /* Initial versteckt */
+    position: absolute; /* Überlagert alles andere */
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%); /* Zentriert das Popup exakt */
+    border: 2px solid black;
+    border-radius: 10px;
+    padding: 25px;
+    background-color: rgba(200, 200, 220, 0.95); /* Leicht bläulicher Hintergrund, fast opak */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3); /* Deutlicher Schatten */
+    z-index: 100; /* Stellt sicher, dass es über Canvas und UI liegt */
+    text-align: center;
+    min-width: 300px; /* Verhindert, dass es zu schmal wird */
+    max-width: 80%; /* Verhindert, dass es auf kleinen Schirmen zu breit wird */
+}
+
+.popup p {
+    margin-top: 0;
+    margin-bottom: 20px; /* Abstand zwischen Text und Button */
+    font-size: 16px;
+    color: #333; /* Dunkler Text für Lesbarkeit */
+}
+
+.popup button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    border: 1px solid #555; /* Dunklerer Rand für Buttons */
+    color: white; /* Weißer Text auf farbigen Buttons */
+    font-weight: bold;
+}
+
+.popup button:hover {
+     opacity: 0.85; /* Leichte Transparenz bei Hover */
+}
+
+/* Spezifische Popup Styles (optional) */
+#infoPopup {
+    background-color: rgba(180, 200, 255, 0.97); /* Helleres Blau, fast opak */
+    border-color: #00008B; /* Dunkelblau */
+}
+ #infoPopup button {
+     background-color: #4682B4; /* Stahlblau */
+ }
+
+#lootboxPopup {
+    background-color: rgba(255, 250, 205, 0.97); /* Zitronengelb, fast opak */
+    border-color: #FFD700; /* Gold */
+}
+ #lootboxPopup button {
+     background-color: #DAA520; /* Goldocker */
+     margin: 5px; /* Abstand zwischen Open/OK Button */
+ }
+
+ /* Spezielles Styling für den OK-Button der Lootbox, falls nötig */
+ #lootboxPopup #lootboxOkButton {
+     /* Falls abweichendes Styling gewünscht */
+ }
