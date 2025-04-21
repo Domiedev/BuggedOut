@@ -1356,11 +1356,7 @@ function draw() {
     // Die HTML Popups legen sich automatisch darüber
 } // <<<<<<< ACHTUNG: Diese schließende Klammer muss vorhanden sein!
 
-// --- Stelle sicher, dass die zweite Kopie von draw() gelöscht ist! ---
 
-
-    // Note: HTML Popups (Perk Selection, Info, Lootbox) will automatically draw over the canvas
-// === Game Loop ===
 function gameLoop(timestamp) {
      // Warte, bis Bilder geladen sind und ein Spielzustand gesetzt ist
     if (!imagesLoaded || !gameState) {
