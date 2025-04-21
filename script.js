@@ -1077,15 +1077,15 @@ function applyPerk(perkType) {
     // 1. Apply the chosen perk effect
     switch (perkType) {
         case 'speed': // <<<< GEÄNDERT: 5% Speed Increase
-            player.shootSpeedMultiplier *= 1.05; // Increase speed factor
+            player.shootSpeedMultiplier *= 1.1; // Increase speed factor
             player.currentShootInterval = BASE_SHOOT_INTERVAL / player.shootSpeedMultiplier; // Recalculate interval
             break;
         case 'damage': // <<<< GEÄNDERT: 2% Damage Increase
-             player.damageMultiplier *= 1.02; // Increase damage factor
+             player.damageMultiplier *= 1.1; // Increase damage factor
              player.currentDamage = BASE_PROJECTILE_DAMAGE * player.damageMultiplier; // Recalculate damage
              break;
         case 'shotgun': // <<<< GEÄNDERT: +1 Projectile
-            player.projectileCount = Math.min(16, player.projectileCount + 1); // Add 1 projectile, cap at 16
+            player.projectileCount = Math.min(16, player.projectileCount + 2); // Add 1 projectile, cap at 16
             break;
         // Füge hier bei Bedarf weitere Perks hinzu
     }
