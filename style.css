@@ -1,12 +1,12 @@
 /* style.css */
 
 /* Grundlegendes Body-Styling */
-/* style.css */
+/* style.css */ /* <<< Redundant */
 
-/* Grundlegendes Body-Styling */
-/* style.css */
+/* Grundlegendes Body-Styling */ /* <<< Redundant */
+/* style.css */ /* <<< Redundant */
 
-/* Grundlegendes Body-Styling */
+/* Grundlegendes Body-Styling */ /* <<< Redundant */
 body {
     display: flex;
     flex-direction: column;
@@ -20,13 +20,13 @@ body {
 /* Canvas Styling */
 canvas {
     border: 1px solid black;
-    /* background-color: #ddd; */ /* <<< DIESE ZEILE ENTFERNEN ODER AUSKOMMENTIEREN */
+    /* background-color: #ddd; */ /* <<< KORREKT auskommentiert */
     /* Zentrierung wird durch body align-items erreicht */
 }
 
-/* ... (Rest deiner CSS-Regeln bleibt gleich) ... */
+/* ... (Rest deiner CSS-Regeln bleibt gleich) ... */ /* <<< Redundant */
 
-/* ... (Rest deiner CSS-Regeln bleibt gleich) ... */
+/* ... (Rest deiner CSS-Regeln bleibt gleich) ... */ /* <<< Redundant */
 
 /* Container für die permanenten UI-Buttons */
 #ui-layer {
