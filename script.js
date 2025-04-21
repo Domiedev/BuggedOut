@@ -239,39 +239,33 @@ function drawPlayer() {
 
 
 // === drawEnemy (ANGEPASST für Goon) ===
+// === drawEnemy (KORRIGIERT) ===
 function drawEnemy(enemy) {
     const w = enemy.width;
     const h = enemy.height;
 
     ctx.save(); // Zustand speichern für Transformationen/Effekte
-    ctx.translate(enemy.x, enemy.y); // Zum Gegner-Ursprung bewegen für relative Zeichnung
+    // WICHTIG: Translation nur für das Zeichnen des Gegners selbst
+    ctx.translate(enemy.x, enemy.y);
 
     // --- Zeichnen des Gegners selbst ---
     if (enemy.type === 'goon' && imagesLoaded && gameImages.goon1 && gameImages.goon1.naturalWidth > 0) {
         // Goon Bild zeichnen (relativ zu 0,0 wegen translate)
         ctx.drawImage(gameImages.goon1, 0, 0, w, h);
-
-        // --- Alte Goon-Zeichnung entfernt ---
-        // ctx.fillStyle = enemy.color; // Rot
-        // ctx.beginPath();
-        // ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
-        // ctx.fill();
-        // ctx.fillStyle = '#8B0000'; // Dunkelrot
-        // drawRect(w * 0.3, h * 0.1, w * 0.15, h * 0.15); // Augen
-        // drawRect(w * 0.55, h * 0.1, w * 0.15, h * 0.15);
-
     } else {
         // Standard-Rechteck für andere Typen oder wenn Goon-Bild fehlt
-        drawRect(0, 0, w, h, enemy.color);
+        drawRect(0, 0, w, h, enemy.color); // Zeichnet relativ zu 0,0
         if (enemy.type === 'goon' && (!imagesLoaded || !gameImages.goon1 || gameImages.goon1.naturalWidth === 0)) {
              console.warn("Goon image not loaded, drawing fallback rect.");
         }
     }
-    ctx.restore(); // Transformation zurücksetzen, bevor Balken etc. gezeichnet werden
+    ctx.restore(); // Transformation NUR für den Gegner aufheben
 
-    // --- Lebensbalken und Statuseffekte (bleiben gleich) ---
+    // --- Lebensbalken und Statuseffekte (ABSOLUTE Positionierung) ---
     // Wichtig: Diese werden jetzt über der korrekten Position (enemy.x, enemy.y) gezeichnet,
     // da ctx.restore() die Translation aufgehoben hat.
+
+    // Lebensbalken
     const healthBarWidth = enemy.width;
     const healthBarHeight = 5;
     const barX = enemy.x;
@@ -287,12 +281,13 @@ function drawEnemy(enemy) {
         ctx.strokeRect(enemy.x - 1, enemy.y - 1, enemy.width + 2, enemy.height + 2); // Oranger Rahmen
     }
     if (enemy.statusEffects.slowed?.duration > 0) {
-        // Blauer Overlay über dem Gegner (vorher war es relativ, jetzt absolut)
+        // Blauer Overlay über dem Gegner
         ctx.fillStyle = 'rgba(0, 0, 255, 0.2)';
         ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
     }
     ctx.lineWidth = 1; // Standard-Linienbreite wiederherstellen
 }
+// --- Stelle sicher, dass die zweite, fehlerhafte Kopie von drawEnemy gelöscht ist! ---
 
 
     ctx.restore(); // Wichtig! Zustand wiederherstellen, bevor Balken/Effekte gezeichnet werden
@@ -1329,7 +1324,7 @@ function update() {
     }
 }
 
-
+// === draw (KORRIGIERT) ===
 function draw() {
     // Hintergrund löschen (optional, aber sicher, falls BG-Bild Transparenz hat)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1340,6 +1335,10 @@ function draw() {
     } else {
         // Fallback-Hintergrundfarbe, falls Bild nicht geladen
         drawRect(0, 0, canvas.width, canvas.height, '#333'); // Dunkelgrau
+        if (!imagesLoaded) {
+            // Optional: Ladeanzeige über Fallback-Farbe
+             drawText("Loading Assets...", canvas.width / 2, canvas.height / 2, 'white', '30px');
+        }
     }
 
     // Draw based on game state (Rest der Funktion bleibt gleich)
@@ -1352,23 +1351,29 @@ function draw() {
     } else if (gameState === 'lootboxSpinning') {
         // Zeichne normale Elemente unter der Animation
         drawPath(); drawDrops(); drawTowers();
+        // Filter hinzugefügt zur Sicherheit gegen null/undefined Elemente
         enemies.filter(e => e).forEach(enemy => drawEnemy(enemy));
         projectiles.filter(p => p).forEach(p => drawProjectile(p));
         if (player) drawPlayer();
         drawUI();
         // Zeichne die Reel-Animation
         drawLootboxSpinning();
-    } else {
+    } else if (gameState && gameState !== 'start') { // Nur zeichnen, wenn Spiel läuft/pausiert etc.
         // Zeichne normale Spielelemente für andere aktive Zustände
         drawPath();
         drawDrops();
         drawTowers();
+         // Filter hinzugefügt zur Sicherheit
         enemies.filter(e => e).forEach(enemy => drawEnemy(enemy));
         projectiles.filter(p => p).forEach(p => drawProjectile(p));
-        if (player) drawPlayer();
-        drawUI();
+        if (player) drawPlayer(); // Check if player exists
+        drawUI(); // Draw HUD elements
     }
-}
+    // Die HTML Popups legen sich automatisch darüber
+} // <<<<<<< ACHTUNG: Diese schließende Klammer muss vorhanden sein!
+
+// --- Stelle sicher, dass die zweite Kopie von draw() gelöscht ist! ---
+
 
     // Note: HTML Popups (Perk Selection, Info, Lootbox) will automatically draw over the canvas
 }
