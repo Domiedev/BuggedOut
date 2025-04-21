@@ -18,7 +18,8 @@ const lootboxOpenButton = document.getElementById('lootboxOpenButton');
 const lootboxOkButton = document.getElementById('lootboxOkButton');
 
 // === Spielzustände ===
-let gameState = 'start'; // 'start', 'playing', 'betweenWaves', 'gameOver', 'selectingPerk', 'infoPopup', 'lootboxOpening', 'lootboxRevealing'
+let gameState; // Initial keinen Wert zuweisen
+// oder: let gameState = null; // 'start', 'playing', 'betweenWaves', 'gameOver', 'selectingPerk', 'infoPopup', 'lootboxOpening', 'lootboxRevealing'
 let nextStateAfterPopup = 'playing'; // Wohin nach Popup?
 
 // === Zeit Management ===
