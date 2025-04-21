@@ -2,6 +2,17 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// === NEU: Bild-Variablen ===
+let gameImages = {}; // Objekt zum Speichern geladener Bilder
+let imagesLoaded = false; // Flag, ob alle Bilder geladen sind
+const imageSources = { // Pfade zu deinen Bildern (stelle sicher, dass sie stimmen!)
+    playerUp: 'playerup.png',
+    playerDown: 'playerdown.png',
+    playerLeft: 'playerleft.png',
+    playerRight: 'playerright.png',
+    goon1: 'goon1.png',
+    background: 'background.png'
+};
 // === HTML Elemente ===
 const playButton = document.getElementById('playButton');
 const retryButton = document.getElementById('retryButton');
@@ -24,6 +35,7 @@ let nextStateAfterPopup = 'playing'; // Wohin nach Popup?
 // === Zeit Management ===
 let lastTimestamp = 0;
 let deltaTime = 0; // Zeit seit letztem Frame in Sekunden
+
 
 // === Spielkonstanten ===
 const PLAYER_MAX_HEALTH = 20;
@@ -105,48 +117,183 @@ function drawText(text, x, y, color = 'black', size = '20px', align = 'center', 
 function getRandomElement(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function distanceSq(x1, y1, x2, y2) { const dx = x1 - x2; const dy = y1 - y2; return dx * dx + dy * dy; }
 
+// === NEU: Funktion zum Laden aller Bilder ===
+function loadImages() {
+    let promises = [];
+    let numImages = Object.keys(imageSources).length;
+    let loadedCount = 0;
+
+    console.log("Loading images...");
+
+    for (const key in imageSources) {
+        const src = imageSources[key];
+        let promise = new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                gameImages[key] = img;
+                loadedCount++;
+                console.log(`Loaded: ${key} (${loadedCount}/${numImages})`);
+                resolve(img);
+            };
+            img.onerror = (err) => {
+                console.error(`Failed to load image: ${key} at ${src}`, err);
+                // Optional: Setze ein Platzhalterbild oder lehne Promise ab
+                // gameImages[key] = createPlaceholderImage(32, 32, 'red'); // Beispiel
+                reject(`Failed to load ${key}`);
+            };
+            img.src = src; // Starte den Ladevorgang
+        });
+        promises.push(promise);
+    }
+
+    // Warten, bis alle Bilder geladen sind
+    return Promise.all(promises)
+        .then(() => {
+            console.log("All images loaded successfully!");
+            imagesLoaded = true; // Setze das Flag
+            // Optional: Hier direkt resetGame() aufrufen, wenn Start sofort nach Laden erfolgen soll
+            // resetGame();
+            // requestAnimationFrame(gameLoop);
+        })
+        .catch(error => {
+            console.error("Error loading one or more images:", error);
+            // Handle den Fehler - vielleicht eine Fehlermeldung anzeigen?
+            // Zum Beispiel:
+            alert("Fehler beim Laden der Spielgrafiken. Bitte überprüfe die Dateipfade und lade die Seite neu.");
+        });
+}
+// --- Optional: Platzhalterbild, falls ein Bild fehlt ---
+/*
+function createPlaceholderImage(width, height, color) {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.fillStyle = color;
+    tempCtx.fillRect(0, 0, width, height);
+    tempCtx.fillStyle = 'white';
+    tempCtx.font = '10px Arial';
+    tempCtx.textAlign = 'center';
+    tempCtx.textBaseline = 'middle';
+    tempCtx.fillText('?', width/2, height/2);
+    const placeholderImg = new Image();
+    placeholderImg.src = tempCanvas.toDataURL();
+    return placeholderImg;
+}
+*/
 // === Zeichnen Funktionen ===
 function drawPlayer() {
+    if (!imagesLoaded || !gameImages.playerDown) return; // Nicht zeichnen, wenn Bilder noch nicht bereit
+
+    let playerImg;
+    // Wähle das Bild basierend auf der Blickrichtung
+    switch (player.facingDirection) {
+        case 'up':
+            playerImg = gameImages.playerUp;
+            break;
+        case 'left':
+            playerImg = gameImages.playerLeft;
+            break;
+        case 'right':
+            playerImg = gameImages.playerRight;
+            break;
+        case 'down':
+        default: // Standardmäßig nach unten schauen
+            playerImg = gameImages.playerDown;
+            break;
+    }
+
+    // Laser zeichnen (wie vorher)
     if (nearestEnemyForLaser && (gameState === 'playing' || gameState === 'betweenWaves')) {
         ctx.strokeStyle = 'red'; ctx.lineWidth = 1; ctx.beginPath();
         ctx.moveTo(player.x + player.width / 2, player.y + player.height / 2);
         ctx.lineTo(nearestEnemyForLaser.x + nearestEnemyForLaser.width / 2, nearestEnemyForLaser.y + nearestEnemyForLaser.height / 2);
         ctx.stroke();
+        ctx.lineWidth = 1; // Zurücksetzen
     }
-    // Einfache Spieler-Grafik
-    const bodyX = player.x + 4, bodyY = player.y + 8, bodyW = player.width - 8, bodyH = player.height - 12;
-    drawRect(bodyX, bodyY, bodyW, bodyH, '#808080'); // Körper
-    drawRect(player.x + 8, player.y, player.width - 16, 8, '#696969'); // Helm
-    drawRect(bodyX, bodyY + bodyH, 6, 4, '#696969'); // Fuß links
-    drawRect(bodyX + bodyW - 6, bodyY + bodyH, 6, 4, '#696969'); // Fuß rechts
-    drawRect(player.x + player.width - 4, player.y + 12, 4, 8, '#505050'); // Waffe (Andeutung)
+
+    // Spielerbild zeichnen, wenn es existiert
+    if (playerImg) {
+         // Überprüfen, ob das Bild tatsächlich Dimensionen hat (erfolgreich geladen)
+         if (playerImg.naturalWidth > 0 && playerImg.naturalHeight > 0) {
+              ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+         } else {
+             // Fallback, falls Bild zwar im Objekt, aber nicht korrekt geladen ist
+             console.warn("Player image not ready for drawing:", player.facingDirection);
+             drawRect(player.x, player.y, player.width, player.height, 'blue'); // Fallback-Rechteck
+         }
+    } else {
+         // Fallback, falls das Bild für die Richtung nicht gefunden wurde
+         console.warn("Player image missing for direction:", player.facingDirection);
+         drawRect(player.x, player.y, player.width, player.height, 'blue'); // Fallback-Rechteck
+    }
+
+    // --- Alte drawRect Befehle entfernt ---
+    // const bodyX = player.x + 4, bodyY = player.y + 8, bodyW = player.width - 8, bodyH = player.height - 12;
+    // drawRect(bodyX, bodyY, bodyW, bodyH, '#808080'); // Körper
+    // drawRect(player.x + 8, player.y, player.width - 16, 8, '#696969'); // Helm
+    // drawRect(bodyX, bodyY + bodyH, 6, 4, '#696969'); // Fuß links
+    // drawRect(bodyX + bodyW - 6, bodyY + bodyH, 6, 4, '#696969'); // Fuß rechts
+    // drawRect(player.x + player.width - 4, player.y + 12, 4, 8, '#505050'); // Waffe (Andeutung)
 }
 
-// === drawEnemy (angepasst für Goon) ===
+
+// === drawEnemy (ANGEPASST für Goon) ===
 function drawEnemy(enemy) {
-    ctx.save(); // Zustand speichern für Transformationen
-    ctx.translate(enemy.x, enemy.y); // Zum Gegner-Ursprung bewegen
     const w = enemy.width;
     const h = enemy.height;
 
-    if (enemy.type === 'goon') {
-        // Roter Alien-Bug (Beispiel)
-        // Körper (Oval-artig)
-        ctx.fillStyle = enemy.color; // Rot
-        ctx.beginPath();
-        ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Dunklere Umrandung oder Details (optional)
-        ctx.fillStyle = '#8B0000'; // Dunkelrot
-        // Kleine "Augen"-Andeutung
-        drawRect(w * 0.3, h * 0.1, w * 0.15, h * 0.15);
-        drawRect(w * 0.55, h * 0.1, w * 0.15, h * 0.15);
-        // Unterseite/Muster
-        // drawRect(w * 0.2, h * 0.7, w * 0.6, h * 0.1);
+    ctx.save(); // Zustand speichern für Transformationen/Effekte
+    ctx.translate(enemy.x, enemy.y); // Zum Gegner-Ursprung bewegen für relative Zeichnung
+
+    // --- Zeichnen des Gegners selbst ---
+    if (enemy.type === 'goon' && imagesLoaded && gameImages.goon1 && gameImages.goon1.naturalWidth > 0) {
+        // Goon Bild zeichnen (relativ zu 0,0 wegen translate)
+        ctx.drawImage(gameImages.goon1, 0, 0, w, h);
+
+        // --- Alte Goon-Zeichnung entfernt ---
+        // ctx.fillStyle = enemy.color; // Rot
+        // ctx.beginPath();
+        // ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+        // ctx.fill();
+        // ctx.fillStyle = '#8B0000'; // Dunkelrot
+        // drawRect(w * 0.3, h * 0.1, w * 0.15, h * 0.15); // Augen
+        // drawRect(w * 0.55, h * 0.1, w * 0.15, h * 0.15);
+
     } else {
-        // Standard-Rechteck für andere Typen
+        // Standard-Rechteck für andere Typen oder wenn Goon-Bild fehlt
         drawRect(0, 0, w, h, enemy.color);
+        if (enemy.type === 'goon' && (!imagesLoaded || !gameImages.goon1 || gameImages.goon1.naturalWidth === 0)) {
+             console.warn("Goon image not loaded, drawing fallback rect.");
+        }
     }
+    ctx.restore(); // Transformation zurücksetzen, bevor Balken etc. gezeichnet werden
+
+    // --- Lebensbalken und Statuseffekte (bleiben gleich) ---
+    // Wichtig: Diese werden jetzt über der korrekten Position (enemy.x, enemy.y) gezeichnet,
+    // da ctx.restore() die Translation aufgehoben hat.
+    const healthBarWidth = enemy.width;
+    const healthBarHeight = 5;
+    const barX = enemy.x;
+    const barY = enemy.y - healthBarHeight - 2; // Position über dem Gegner
+    const healthPercentage = Math.max(0, enemy.currentHealth / enemy.maxHealth);
+    drawRect(barX, barY, healthBarWidth, healthBarHeight, '#555'); // Hintergrund des Balkens
+    drawRect(barX, barY, healthBarWidth * healthPercentage, healthBarHeight, 'lime'); // Vordergrund
+
+    // Statuseffekte (visuelle Indikatoren)
+    ctx.lineWidth = 2; // Dickere Linie für Effekte
+    if (enemy.statusEffects.burning?.duration > 0) {
+        ctx.strokeStyle = 'orange';
+        ctx.strokeRect(enemy.x - 1, enemy.y - 1, enemy.width + 2, enemy.height + 2); // Oranger Rahmen
+    }
+    if (enemy.statusEffects.slowed?.duration > 0) {
+        // Blauer Overlay über dem Gegner (vorher war es relativ, jetzt absolut)
+        ctx.fillStyle = 'rgba(0, 0, 255, 0.2)';
+        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+    }
+    ctx.lineWidth = 1; // Standard-Linienbreite wiederherstellen
+}
+
 
     ctx.restore(); // Wichtig! Zustand wiederherstellen, bevor Balken/Effekte gezeichnet werden
 
@@ -346,6 +493,15 @@ function updatePlayerMovement() {
     if (keys['ArrowDown'] || keys['s']) intendedY = 1;
     if (keys['ArrowLeft'] || keys['a']) intendedX = -1;
     if (keys['ArrowRight'] || keys['d']) intendedX = 1;
+
+    // --- NEU: Blickrichtung aktualisieren ---
+    if (intendedX > 0) player.facingDirection = 'right';
+    else if (intendedX < 0) player.facingDirection = 'left';
+    else if (intendedY > 0) player.facingDirection = 'down';
+    else if (intendedY < 0) player.facingDirection = 'up';
+    // Wenn keine Taste gedrückt wird, bleibt die letzte Richtung erhalten.
+
+    // Diagonalbewegung anpassen (wie vorher)
     let moveX = intendedX; let moveY = intendedY;
     if (intendedX !== 0 && intendedY !== 0) {
         const factor = 1 / Math.sqrt(2);
@@ -1049,20 +1205,24 @@ function checkNewEnemyIntroduction() {
     return false; // No new enemy this wave
 }
 
+
 function resetGame() {
+    // Wichtig: Player-Objekt hier initialisieren
     player = {
         x: canvas.width / 2 - PLAYER_WIDTH / 2, y: canvas.height / 2 - PLAYER_HEIGHT / 2,
         width: PLAYER_WIDTH, height: PLAYER_HEIGHT, speed: PLAYER_BASE_SPEED,
-        color: 'blue', dx: 0, dy: 0, health: PLAYER_MAX_HEALTH,
+        // color: 'blue', // Nicht mehr benötigt, da wir Bilder verwenden
+        dx: 0, dy: 0, health: PLAYER_MAX_HEALTH,
         level: 1, xp: 0, xpForNextLevel: BASE_XP_FOR_NEXT_LEVEL,
         shootSpeedMultiplier: 1, damageMultiplier: 1, projectileCount: 1,
-        currentShootInterval: BASE_SHOOT_INTERVAL, currentDamage: BASE_PROJECTILE_DAMAGE
+        currentShootInterval: BASE_SHOOT_INTERVAL, currentDamage: BASE_PROJECTILE_DAMAGE,
+        facingDirection: 'down' // <<<< NEU: Startblickrichtung
     };
     enemies = []; projectiles = []; drops = []; towers = [];
     keys = {}; currentWave = 0; waveTimer = 0; intermissionTimer = 3; // Short initial intermission
     enemySpawnTimer = 0; shootTimer = 0; nearestEnemyForLaser = null;
     availableEnemyTypes = ['goon']; introducedEnemies = {};
-    lastTimestamp = 0; deltaTime = 0;
+    lastTimestamp = 0; deltaTime = 0; // Zeit zurücksetzen
 
     // Reset Lootbox variables
     lootboxSpinningTimer = 0;
@@ -1171,44 +1331,63 @@ function update() {
 
 
 function draw() {
+    // Hintergrund löschen (optional, aber sicher, falls BG-Bild Transparenz hat)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw based on game state
+    // --- NEU: Hintergrundbild zeichnen ---
+    if (imagesLoaded && gameImages.background && gameImages.background.naturalWidth > 0) {
+        ctx.drawImage(gameImages.background, 0, 0, canvas.width, canvas.height);
+    } else {
+        // Fallback-Hintergrundfarbe, falls Bild nicht geladen
+        drawRect(0, 0, canvas.width, canvas.height, '#333'); // Dunkelgrau
+    }
+
+    // Draw based on game state (Rest der Funktion bleibt gleich)
     if (gameState === 'start') {
+        // Wenn Startbildschirm einen eigenen Hintergrund braucht, hier anpassen
         drawStartScreen();
     } else if (gameState === 'gameOver') {
-        // Draw game elements underneath the overlay? Optional.
-        // drawPath(); drawTowers(); // etc.
-        drawGameOverScreen(); // Draw overlay last
+        // Hintergrund wird bereits gezeichnet, dann GameOver Overlay
+        drawGameOverScreen();
     } else if (gameState === 'lootboxSpinning') {
-        // Draw normal game elements in the background (optional)
+        // Zeichne normale Elemente unter der Animation
         drawPath(); drawDrops(); drawTowers();
         enemies.filter(e => e).forEach(enemy => drawEnemy(enemy));
         projectiles.filter(p => p).forEach(p => drawProjectile(p));
         if (player) drawPlayer();
         drawUI();
-        // Draw the spinning reel animation (will appear under HTML popup)
+        // Zeichne die Reel-Animation
         drawLootboxSpinning();
     } else {
-        // Draw normal game elements for 'playing', 'betweenWaves', 'selectingPerk', 'infoPopup', 'lootboxOpening', 'lootboxRevealing'
+        // Zeichne normale Spielelemente für andere aktive Zustände
         drawPath();
         drawDrops();
         drawTowers();
-        enemies.filter(e => e).forEach(enemy => drawEnemy(enemy)); // Filter out potential nulls
-        projectiles.filter(p => p).forEach(p => drawProjectile(p)); // Filter out potential nulls
-        if (player) drawPlayer(); // Check if player exists
-        drawUI(); // Draw HUD elements
+        enemies.filter(e => e).forEach(enemy => drawEnemy(enemy));
+        projectiles.filter(p => p).forEach(p => drawProjectile(p));
+        if (player) drawPlayer();
+        drawUI();
     }
+}
 
     // Note: HTML Popups (Perk Selection, Info, Lootbox) will automatically draw over the canvas
 }
 
 // === Game Loop ===
 function gameLoop(timestamp) {
+     // Warte, bis Bilder geladen sind und ein Spielzustand gesetzt ist
+    if (!imagesLoaded || !gameState) {
+        // Zeichne vielleicht einen Ladebildschirm?
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawText("Loading Assets...", canvas.width / 2, canvas.height / 2, 'white', '30px');
+        requestAnimationFrame(gameLoop); // Weiter warten
+        return; // Update und Draw überspringen
+    }
+
+    // Normale Logik, wenn Bilder geladen sind
     if (!lastTimestamp) lastTimestamp = timestamp;
     deltaTime = (timestamp - lastTimestamp) / 1000;
-    // Clamp deltaTime to prevent physics explosions on lag spikes or tab unfocus
-    deltaTime = Math.min(deltaTime, 1 / 15); // Max 15 FPS equivalent physics step
+    deltaTime = Math.min(deltaTime, 1 / 15);
     lastTimestamp = timestamp;
 
     try {
@@ -1216,11 +1395,9 @@ function gameLoop(timestamp) {
         draw();
     } catch (error) {
         console.error("Error in game loop:", error);
-        // Optionally stop the loop on critical errors
-        // return;
     }
 
-    requestAnimationFrame(gameLoop); // Continue the loop
+    requestAnimationFrame(gameLoop);
 }
 
 // === Event Listener Setup ===
@@ -1319,7 +1496,20 @@ if (lootboxOkButton) lootboxOkButton.addEventListener('click', () => {
 
 // --- Initialisierung ---
 console.log("Game script loaded. Initializing...");
-// Set initial game state *after* all functions and variables are defined.
-setGameState('start'); // Start on the title screen
-requestAnimationFrame(gameLoop); // Start the main game loop
-console.log("Game loop started.");
+
+// Lade zuerst die Bilder. Der Spielstart (setGameState, gameLoop) erfolgt im .then() von loadImages.
+loadImages().then(() => {
+     // Dieser Code wird ausgeführt, NACHDEM alle Bilder erfolgreich geladen wurden.
+     console.log("Image loading complete. Setting initial game state.");
+     // Setze den Startzustand hier, damit `resetGame` korrekt aufgerufen werden kann,
+     // wenn der Play-Button gedrückt wird (oder direkt, wenn du nicht mit Startscreen startest).
+     setGameState('start'); // Oder 'betweenWaves', wenn direkt gestartet werden soll
+     requestAnimationFrame(gameLoop); // Starte die Game Loop *nachdem* Bilder geladen sind
+     console.log("Game loop initiated.");
+}).catch(error => {
+     // Fehler wurde schon in loadImages geloggt, hier evtl. zusätzliche UI-Info
+     console.error("Initialization failed due to image loading errors.");
+     // Zeige dem User eine permanente Fehlermeldung auf dem Canvas an?
+     ctx.clearRect(0, 0, canvas.width, canvas.height);
+     drawText("Error loading game graphics!", canvas.width / 2, canvas.height / 2, 'red', '24px');
+});
