@@ -7,18 +7,13 @@ const playButton = document.getElementById('playButton');
 const retryButton = document.getElementById('retryButton');
 const perkSelectionDiv = document.getElementById('perkSelection');
 const perkButtons = document.querySelectorAll('.perkButton');
-// Neu für Info-Popup (kann man auch auf Canvas zeichnen)
-// Füge hinzu in index.html: <div id="infoPopup" style="display: none; border: 2px solid black; padding: 20px; background: lightblue; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;"><p id="infoText"></p><button id="infoOkButton">OK</button></div>
 const infoPopupDiv = document.getElementById('infoPopup');
 const infoTextP = document.getElementById('infoText');
 const infoOkButton = document.getElementById('infoOkButton');
-// Neu für Lootbox (ähnlich wie Info Popup)
-// Füge hinzu in index.html: <div id="lootboxPopup" style="display: none; border: 2px solid gold; padding: 20px; background: lightyellow; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;"><p id="lootboxText"></p><button id="lootboxOpenButton">Open!</button><button id="lootboxOkButton" style="display: none;">OK</button></div>
 const lootboxPopupDiv = document.getElementById('lootboxPopup');
 const lootboxTextP = document.getElementById('lootboxText');
 const lootboxOpenButton = document.getElementById('lootboxOpenButton');
 const lootboxOkButton = document.getElementById('lootboxOkButton');
-
 
 // === Spielzustände ===
 let gameState = 'start'; // 'start', 'playing', 'betweenWaves', 'gameOver', 'selectingPerk', 'infoPopup', 'lootboxOpening', 'lootboxRevealing'
@@ -35,7 +30,7 @@ const WAVE_DURATION = 30; // Sekunden
 const INTERMISSION_DURATION = 10; // Sekunden
 const ENEMY_INTRO_WAVES = [3, 6]; // Bei welchen Wellen neue Gegner kommen
 const ENEMY_DROP_CHANCE = 0.1; // 10% Chance für Diamant
-const LOOTBOX_REVEAL_DURATION = 1.5; // Sekunden
+const LOOTBOX_REVEAL_DURATION = 1.5; // Sekunden (derzeit nicht für Animation genutzt)
 
 // --- Player Config ---
 const PLAYER_BASE_SPEED = 200; // Pixel pro Sekunde
@@ -73,22 +68,28 @@ let introducedEnemies = {}; // Trackt, welche Beschreibungen gezeigt wurden
 const TOWER_TYPES = {
     flamethrower: {
         name: "Flamethrower", color: '#FF4500', range: 100, // OrangRot
-        cooldown: 0.1, damage: 5, // Schaden pro Sekunde während der Effekt aktiv ist
-        burnDuration: 2.0, vulnerability: 1.25, // 25% mehr Schaden
-        cost: 0 // Wird ja gedroppt
+        cooldown: 0.1, // Sekunden pro "Puls"
+        burnDuration: 2.0, // Sekunden
+        burnDamagePerSecond: 5, // Schaden pro Sekunde des Effekts
+        vulnerability: 1.25, // 25% mehr Schaden
+        cost: 0
     },
     sniper: {
         name: "Sniper", color: '#006400', range: 400, // Dunkelgrün
-        cooldown: 3.0, baseDamage: 100,
-        chargeRate: 5, maxCharge: 100, // 5% pro Sekunde, max 100% Bonus
+        cooldown: 3.0, // Sekunden pro Schuss
+        baseDamage: 100,
+        chargeRate: 5, // Prozent pro Sekunde
+        maxCharge: 100, // Maximaler Bonus in Prozent
         target: 'strongest', // Zielt auf stärkste (nicht 'goon')
         cost: 0
     },
     trap: {
-        name: "Spike Trap", color: '#696969', range: 15, // Dunkelgrau (klein)
-        cooldown: 5.0, damage: 20,
-        slowDuration: 3.0, slowFactor: 0.5, // Halbiert Geschwindigkeit
-        activeDuration: 0.5, // Wie lange die Falle sichtbar/aktiv ist
+        name: "Spike Trap", color: '#696969', range: 15, // Dunkelgrau (Effekt-Radius)
+        cooldown: 5.0, // Sekunden bis reaktivierung
+        damage: 20,
+        slowDuration: 3.0, // Sekunden
+        slowFactor: 0.5, // Halbiert Geschwindigkeit
+        activeDuration: 0.5, // Sekunden, wie lange Falle sichtbar/aktiv ist
         cost: 0
     }
 };
@@ -107,11 +108,12 @@ let enemySpawnTimer = 0;
 let shootTimer = 0;
 let nearestEnemyForLaser = null;
 let enemyToIntroduce = null; // Für Info Popup
-let lootboxRevealTimer = 0;
+let lootboxRevealTimer = 0; // Momentan nicht genutzt für Animation
 
+// Pfad für Gegner
 const enemyPath = [ { x: 0, y: 100 }, { x: 700, y: 100 }, { x: 700, y: 400 }, { x: 100, y: 400 }, { x: 100, y: 550 }];
 
-// === Hilfsfunktionen === (drawRect, drawText wie vorher)
+// === Hilfsfunktionen ===
 function drawRect(x, y, w, h, color) { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); }
 function drawText(text, x, y, color = 'black', size = '20px', align = 'center', baseline = 'middle') { ctx.fillStyle = color; ctx.font = `${size} Arial`; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(text, x, y); }
 function getRandomElement(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -132,17 +134,12 @@ function drawPlayer() {
     const bodyY = player.y + 8;
     const bodyW = player.width - 8;
     const bodyH = player.height - 12;
-    // Körper (Grau)
-    drawRect(bodyX, bodyY, bodyW, bodyH, '#808080');
-    // Kopf/Helm (Dunkleres Grau)
-    drawRect(player.x + 8, player.y, player.width - 16, 8, '#696969');
-    // Beine (Andeutung)
-    drawRect(bodyX, bodyY + bodyH, 6, 4, '#696969');
+    drawRect(bodyX, bodyY, bodyW, bodyH, '#808080'); // Körper (Grau)
+    drawRect(player.x + 8, player.y, player.width - 16, 8, '#696969'); // Kopf/Helm (Dunkleres Grau)
+    drawRect(bodyX, bodyY + bodyH, 6, 4, '#696969'); // Beine (Andeutung)
     drawRect(bodyX + bodyW - 6, bodyY + bodyH, 6, 4, '#696969');
-    // Waffe (Andeutung Seite)
-    drawRect(player.x + player.width - 4, player.y + 12, 4, 8, '#505050');
+    drawRect(player.x + player.width - 4, player.y + 12, 4, 8, '#505050'); // Waffe (Andeutung Seite)
 }
-
 
 function drawEnemy(enemy) {
     // Körper
@@ -152,7 +149,7 @@ function drawEnemy(enemy) {
     const healthBarHeight = 5;
     const barX = enemy.x;
     const barY = enemy.y - healthBarHeight - 2;
-    const healthPercentage = enemy.currentHealth / enemy.maxHealth;
+    const healthPercentage = Math.max(0, enemy.currentHealth / enemy.maxHealth); // Sicherstellen nicht negativ
     drawRect(barX, barY, healthBarWidth, healthBarHeight, '#555');
     drawRect(barX, barY, healthBarWidth * healthPercentage, healthBarHeight, 'lime');
 
@@ -162,27 +159,47 @@ function drawEnemy(enemy) {
         ctx.strokeRect(enemy.x - 1, enemy.y - 1, enemy.width + 2, enemy.height + 2);
     }
     if (enemy.statusEffects.slowed && enemy.statusEffects.slowed.duration > 0) {
-        // Leichter blauer Schimmer?
-        drawRect(enemy.x, enemy.y, enemy.width, enemy.height, 'rgba(0, 0, 255, 0.2)');
+        drawRect(enemy.x, enemy.y, enemy.width, enemy.height, 'rgba(0, 0, 255, 0.2)'); // Leichter blauer Schimmer
     }
-     ctx.lineWidth = 1; // Reset
+     ctx.lineWidth = 1; // Randdicke zurücksetzen
 }
 
 function drawProjectile(p) { drawRect(p.x, p.y, p.width, p.height, p.color); }
-function drawPath() { /*...*/ } // Wie vorher
-function drawXPBar() { /*...*/ } // Wie vorher
+
+function drawPath() {
+    ctx.strokeStyle = 'grey';
+    ctx.lineWidth = 20; // Breite des Pfades
+    ctx.beginPath();
+    if (enemyPath.length > 0) {
+        ctx.moveTo(enemyPath[0].x, enemyPath[0].y);
+        for (let i = 1; i < enemyPath.length; i++) {
+            ctx.lineTo(enemyPath[i].x, enemyPath[i].y);
+        }
+        ctx.stroke();
+    }
+    ctx.lineWidth = 1; // Zurücksetzen
+}
+
+function drawXPBar() {
+    const barHeight = 20;
+    const barWidth = canvas.width * 0.8; // 80% der Canvas-Breite
+    const barX = canvas.width * 0.1;
+    const barY = canvas.height - barHeight - 10; // Am unteren Rand
+    const xpPercentage = Math.max(0, Math.min(1, player.xp / player.xpForNextLevel)); // Sicherstellen 0-1
+
+    drawRect(barX, barY, barWidth, barHeight, '#555'); // Hintergrund
+    drawRect(barX, barY, barWidth * xpPercentage, barHeight, 'yellow'); // Vordergrund (XP)
+    drawText(`Level: ${player.level} | XP: ${player.xp} / ${player.xpForNextLevel}`, canvas.width / 2, barY + barHeight / 2, 'black', '14px'); // Text
+}
 
 function drawDrops() {
     for (const drop of drops) {
-        // Einfacher Diamant
-        ctx.fillStyle = 'aqua';
-        ctx.beginPath();
+        ctx.fillStyle = 'aqua'; ctx.beginPath();
         ctx.moveTo(drop.x + drop.width / 2, drop.y);
         ctx.lineTo(drop.x + drop.width, drop.y + drop.height / 2);
         ctx.lineTo(drop.x + drop.width / 2, drop.y + drop.height);
         ctx.lineTo(drop.x, drop.y + drop.height / 2);
-        ctx.closePath();
-        ctx.fill();
+        ctx.closePath(); ctx.fill();
     }
 }
 
@@ -194,22 +211,16 @@ function drawTowers() {
         if (tower.type === 'sniper') {
             drawText(`${Math.floor(tower.chargePercent)}%`, tower.x + tower.width / 2, tower.y - 10, 'cyan', '12px');
         } else if (tower.type === 'trap' && tower.isActive) {
-             // Zeichne Falle auf dem Pfad
-             drawRect(tower.pathX - tower.range, tower.pathY - tower.range, tower.range*2, tower.range*2, tower.color);
+             // Zeichne Falle als graues Rechteck am Turmstandort (Falle ist quasi der Turm)
+             drawRect(tower.x, tower.y, tower.width, tower.height, '#A9A9A9'); // Dunkleres Grau für aktiv
         }
-         // Reichweite anzeigen (optional)
-        /*
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.beginPath();
-        ctx.arc(tower.x + tower.width/2, tower.y + tower.height/2, tower.range, 0, Math.PI*2);
-        ctx.stroke();
-        */
     }
 }
 
-function drawUI() { /* ... Wie vorher, zeigt Leben, Welle etc. ... */
-    drawText(`Lives: ${player.health}`, 60, 30, 'red', '20px', 'left');
-    drawText(`Wave: ${currentWave}`, canvas.width - 60, 30, 'blue', '20px', 'right');
+function drawUI() {
+     drawText(`Lives: ${player.health}`, 60, 30, 'red', '20px', 'left');
+     drawText(`Wave: ${currentWave}`, canvas.width - 60, 30, 'blue', '20px', 'right');
+
     if (gameState === 'playing') {
         drawText(`Time left: ${Math.ceil(waveTimer)}s`, canvas.width / 2, 30);
     } else if (gameState === 'betweenWaves') {
@@ -219,71 +230,73 @@ function drawUI() { /* ... Wie vorher, zeigt Leben, Welle etc. ... */
     drawXPBar();
 }
 
+// --- HIER IST DIE NEUE/FEHLENDE FUNKTION ---
+function drawStartScreen() {
+    // Optional: Hintergrund direkt auf Canvas zeichnen (falls gewünscht)
+    // drawRect(0, 0, canvas.width, canvas.height, '#2c3e50'); // Beispiel: Dunkelblau-Grau
+
+    // Titel "BUGGED OUT" zeichnen
+    ctx.font = "bold 70px 'Arial Black', Gadget, sans-serif"; // Ggf. Schriftart/Größe anpassen
+    ctx.fillStyle = '#3498db'; // Beispiel: Helles Blau für den Titel
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle'; // Stellt sicher, dass der Text vertikal zentriert ist
+    ctx.fillText("BUGGED OUT", canvas.width / 2, canvas.height / 2 - 60); // Position etwas über der Mitte
+
+    // Optional: Zusätzlicher Text oder Hinweis
+    drawText("Click the 'Play' button below to begin!", canvas.width / 2, canvas.height / 2 + 40, 'white', '22px');
+    drawText("Use Arrow Keys or WASD to Move", canvas.width / 2, canvas.height / 2 + 75, '#bdc3c7', '16px'); // Hellgrau
+}
+// --- ENDE DER NEUEN FUNKTION ---
+
+function drawGameOverScreen() {
+    drawRect(0, 0, canvas.width, canvas.height, 'rgba(100, 0, 0, 0.8)'); // Dunkelroter Overlay
+    drawText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40, 'white', '60px');
+    drawText(`You reached Wave: ${currentWave}`, canvas.width / 2, canvas.height / 2 + 20, 'white', '30px');
+}
+
 // === Spiel-Logik ===
 
 function updatePlayerMovement() {
-    // Korrigierte Bewegung (Fix #6)
-    let intendedX = 0;
-    let intendedY = 0;
+    let intendedX = 0; let intendedY = 0;
     if (keys['ArrowUp'] || keys['w']) intendedY = -1;
     if (keys['ArrowDown'] || keys['s']) intendedY = 1;
     if (keys['ArrowLeft'] || keys['a']) intendedX = -1;
     if (keys['ArrowRight'] || keys['d']) intendedX = 1;
 
-    let moveX = intendedX;
-    let moveY = intendedY;
-
-    // Normalisieren wenn diagonal
+    let moveX = intendedX; let moveY = intendedY;
     if (intendedX !== 0 && intendedY !== 0) {
         const factor = 1 / Math.sqrt(2);
-        moveX *= factor;
-        moveY *= factor;
+        moveX *= factor; moveY *= factor;
     }
-
     player.dx = moveX * player.speed;
     player.dy = moveY * player.speed;
 }
 
 function movePlayer() {
-    if (gameState !== 'playing') {
-        player.dx = 0; // Stoppen wenn nicht im Spiel
-        player.dy = 0;
-        return;
-    }
-    updatePlayerMovement(); // Aktualisiert dx, dy basierend auf keys
-
-    player.x += player.dx * deltaTime; // Multiplizieren mit deltaTime
+    if (gameState !== 'playing') { player.dx = 0; player.dy = 0; return; }
+    updatePlayerMovement();
+    player.x += player.dx * deltaTime;
     player.y += player.dy * deltaTime;
-
     player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
     player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
 }
 
 function spawnEnemy() {
-    // Wähle zufälligen Typ aus den verfügbaren
     const typeKey = getRandomElement(availableEnemyTypes);
     const typeConfig = ENEMY_TYPES[typeKey];
-
-    // Skalierung basierend auf Welle
-    const waveMultiplier = 1 + (currentWave - 1) * 0.15; // +15% Stats pro Welle (ca.)
+    const waveMultiplier = 1 + (currentWave - 1) * 0.15;
     const health = typeConfig.health * waveMultiplier;
-    const speed = typeConfig.speed * (1 + (currentWave - 1) * 0.05); // Speed skaliert langsamer
+    const speed = typeConfig.speed * (1 + (currentWave - 1) * 0.05);
     const xp = Math.ceil(typeConfig.xp * (1 + (currentWave - 1) * 0.1));
 
     enemies.push({
         type: typeKey,
-        x: enemyPath[0].x - typeConfig.width / 2,
-        y: enemyPath[0].y - typeConfig.height / 2,
-        width: typeConfig.width,
-        height: typeConfig.height,
-        speed: speed,
-        baseSpeed: speed, // Für Slow-Effekt
-        maxHealth: health,
-        currentHealth: health,
-        color: typeConfig.color,
-        pathIndex: 0,
-        value: xp,
-        statusEffects: { // Wichtig für Türme/Perks
+        x: enemyPath[0].x - typeConfig.width / 2, y: enemyPath[0].y - typeConfig.height / 2,
+        width: typeConfig.width, height: typeConfig.height,
+        speed: speed, baseSpeed: speed,
+        maxHealth: health, currentHealth: health,
+        color: typeConfig.color, pathIndex: 0, value: xp,
+        statusEffects: {
             burning: { duration: 0, damageInterval: 0.5, damageTimer: 0, damageAmount: 0 },
             slowed: { duration: 0, speedMultiplier: 1 }
         }
@@ -291,6 +304,7 @@ function spawnEnemy() {
 }
 
 function updateEnemyStatusEffects(enemy) {
+    let diedFromEffect = false;
     // Burning
     let burn = enemy.statusEffects.burning;
     if (burn.duration > 0) {
@@ -298,64 +312,44 @@ function updateEnemyStatusEffects(enemy) {
         burn.damageTimer -= deltaTime;
         if (burn.damageTimer <= 0) {
             enemy.currentHealth -= burn.damageAmount;
-            burn.damageTimer = burn.damageInterval; // Reset timer
-            // Minimalen Schaden sicherstellen oder runden?
-            if (enemy.currentHealth <= 0) return true; // Signalisiert Tod durch Effekt
+            burn.damageTimer = burn.damageInterval;
+            if (enemy.currentHealth <= 0) diedFromEffect = true;
         }
-        if (burn.duration <= 0) burn.duration = 0; // Effekt vorbei
+        if (burn.duration <= 0) burn.duration = 0;
     }
-
     // Slowed
     let slow = enemy.statusEffects.slowed;
     if (slow.duration > 0) {
         slow.duration -= deltaTime;
         enemy.speed = enemy.baseSpeed * slow.speedMultiplier;
         if (slow.duration <= 0) {
-            slow.duration = 0;
-            enemy.speed = enemy.baseSpeed; // Geschwindigkeit wiederherstellen
+            slow.duration = 0; enemy.speed = enemy.baseSpeed;
         }
-    } else {
-         enemy.speed = enemy.baseSpeed; // Sicherstellen, dass Speed normal ist
-    }
-    return false; // Nicht durch Effekt gestorben
+    } else { enemy.speed = enemy.baseSpeed; }
+    return diedFromEffect;
 }
-
 
 function moveEnemies() {
     if (gameState !== 'playing') return;
-
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
-
-        // Status Effekte anwenden
         if (updateEnemyStatusEffects(enemy)) {
-             handleEnemyDefeat(enemy, i); // Gestorben durch DoT
-             continue;
+             handleEnemyDefeat(enemy, i); continue;
         }
-
-
         let targetPoint = enemyPath[enemy.pathIndex];
-        let targetX = targetPoint.x;
-        let targetY = targetPoint.y;
-
+        let targetX = targetPoint.x; let targetY = targetPoint.y;
         let dx = targetX - (enemy.x + enemy.width / 2);
         let dy = targetY - (enemy.y + enemy.height / 2);
         let distance = Math.sqrt(dx * dx + dy * dy);
-
         let moveAmount = enemy.speed * deltaTime;
-
-        if (distance < moveAmount) {
+        if (distance < moveAmount || distance === 0) { // distance === 0 added for safety
             enemy.pathIndex++;
             if (enemy.pathIndex >= enemyPath.length) {
-                enemies.splice(i, 1);
-                player.health--;
-                if (player.health <= 0) {
-                    setGameState('gameOver');
-                }
+                enemies.splice(i, 1); player.health--;
+                if (player.health <= 0) { setGameState('gameOver'); }
                 continue;
             }
-             enemy.x = targetX - enemy.width/2;
-             enemy.y = targetY - enemy.height/2;
+             enemy.x = targetX - enemy.width/2; enemy.y = targetY - enemy.height/2;
         } else {
             enemy.x += (dx / distance) * moveAmount;
             enemy.y += (dy / distance) * moveAmount;
@@ -363,74 +357,101 @@ function moveEnemies() {
     }
 }
 
-function findNearestEnemy() { /* ... unverändert ... */ }
-function findStrongestEnemy() {
-    let strongest = null;
-    let maxHealth = -1;
+function findNearestEnemy() {
+    nearestEnemyForLaser = null;
+    if (enemies.length === 0) return null;
+    let nearestEnemy = null; let minDistanceSq = Infinity;
+    const playerCenterX = player.x + player.width / 2;
+    const playerCenterY = player.y + player.height / 2;
     for (const enemy of enemies) {
-         if (enemy.type === 'goon') continue; // Ignoriert Goons für Sniper-Ziel
-         if (enemy.currentHealth > maxHealth) {
-             maxHealth = enemy.currentHealth;
-             strongest = enemy;
+        let dx = (enemy.x + enemy.width / 2) - playerCenterX;
+        let dy = (enemy.y + enemy.height / 2) - playerCenterY;
+        let distSq = dx * dx + dy * dy;
+        if (distSq < minDistanceSq) {
+            minDistanceSq = distSq; nearestEnemy = enemy;
+        }
+    }
+    nearestEnemyForLaser = nearestEnemy;
+    return nearestEnemy;
+}
+
+function findStrongestEnemy() {
+    let strongest = null; let maxHealth = -1;
+    for (const enemy of enemies) {
+         if (enemy.type === 'goon') continue;
+         // Consider maxHealth oder currentHealth? Let's use maxHealth to define "strongest type"
+         if (enemy.maxHealth > maxHealth) {
+             maxHealth = enemy.maxHealth; strongest = enemy;
          }
     }
-    // Wenn keine "starken" da sind, nimm irgendeinen (außer Goon)? Oder null?
-    if (!strongest && enemies.length > 0) {
-       // Fallback? Optional, aktuell null
-    }
+    // Fallback: if only goons exist, target the one with highest current health? Or null? Current: null
     return strongest;
 }
 
+function shoot() {
+    if (gameState !== 'playing' || enemies.length === 0) return;
+    const targetEnemy = findNearestEnemy();
+    if (!targetEnemy) return;
 
-function shoot() { /* ... fast unverändert, nutzt jetzt player.currentShootInterval ... */ }
+    const playerCenterX = player.x + player.width / 2;
+    const playerCenterY = player.y + player.height / 2;
+    const targetX = targetEnemy.x + targetEnemy.width / 2;
+    const targetY = targetEnemy.y + targetEnemy.height / 2;
+    const baseAngle = Math.atan2(targetY - playerCenterY, targetX - playerCenterX);
+    const spreadAngle = player.projectileCount > 1 ? Math.PI / 12 : 0; // 15 Grad Streuung
+    const projSpeed = 400; // Pixel pro Sekunde
+
+    for (let i = 0; i < player.projectileCount; i++) {
+        let currentAngle = baseAngle;
+        if (player.projectileCount > 1) {
+            currentAngle += spreadAngle * (i - (player.projectileCount - 1) / 2);
+        }
+        let dx = Math.cos(currentAngle); let dy = Math.sin(currentAngle);
+        projectiles.push({
+            x: playerCenterX - 2.5, y: playerCenterY - 2.5,
+            width: 5, height: 5, color: 'black',
+            vx: dx * projSpeed, vy: dy * projSpeed,
+            damage: player.currentDamage
+        });
+    }
+    shootTimer = player.currentShootInterval; // Reset timer AFTER shooting
+}
 
 function handleEnemyDefeat(enemy, index) {
      gainXP(enemy.value);
-     // Drop Chance
      if (Math.random() < ENEMY_DROP_CHANCE) {
          drops.push({
-             x: enemy.x + enemy.width / 2 - 5, // Zentriert
-             y: enemy.y + enemy.height / 2 - 5,
+             x: enemy.x + enemy.width / 2 - 5, y: enemy.y + enemy.height / 2 - 5,
              width: 10, height: 10
          });
+     }
+     // Check if the defeated enemy was the laser target
+     if(nearestEnemyForLaser === enemy) {
+         nearestEnemyForLaser = null; // Clear target if defeated
      }
      enemies.splice(index, 1);
 }
 
-
 function moveProjectiles() {
     if (gameState !== 'playing' && gameState !== 'betweenWaves') return;
-
     for (let i = projectiles.length - 1; i >= 0; i--) {
         let p = projectiles[i];
-        // Projektilgeschwindigkeit jetzt Pixel pro Sekunde
-        p.x += p.vx * deltaTime;
-        p.y += p.vy * deltaTime;
-
-        // Entfernen wenn außerhalb
+        p.x += p.vx * deltaTime; p.y += p.vy * deltaTime;
         if (p.x < -p.width || p.x > canvas.width || p.y < -p.height || p.y > canvas.height) {
             projectiles.splice(i, 1); continue;
         }
-
-        // Kollision mit Gegnern
         for (let j = enemies.length - 1; j >= 0; j--) {
             let enemy = enemies[j];
             if (p.x < enemy.x + enemy.width && p.x + p.width > enemy.x &&
                 p.y < enemy.y + enemy.height && p.y + p.height > enemy.y) {
-
                 let actualDamage = p.damage;
-                // Verwundbarkeit durch Burning prüfen
-                if (enemy.statusEffects.burning && enemy.statusEffects.burning.duration > 0) {
+                if (enemy.statusEffects.burning?.duration > 0) { // Optional chaining ?.
                     actualDamage *= TOWER_TYPES.flamethrower.vulnerability;
                 }
-
                 enemy.currentHealth -= actualDamage;
-                projectiles.splice(i, 1); // Projektil weg
-
-                if (enemy.currentHealth <= 0) {
-                    handleEnemyDefeat(enemy, j);
-                }
-                break; // Projektil trifft nur einen
+                projectiles.splice(i, 1);
+                if (enemy.currentHealth <= 0) { handleEnemyDefeat(enemy, j); }
+                break;
             }
         }
     }
@@ -438,7 +459,7 @@ function moveProjectiles() {
 
 function updateTowers() {
     for (const tower of towers) {
-        tower.cooldownTimer -= deltaTime;
+        tower.cooldownTimer = Math.max(0, tower.cooldownTimer - deltaTime); // Cooldown runterzählen
         if (tower.cooldownTimer <= 0) {
             switch (tower.type) {
                 case 'flamethrower': updateFlamethrower(tower); break;
@@ -446,92 +467,88 @@ function updateTowers() {
                 case 'trap': updateTrap(tower); break;
             }
         }
-        // Update spezifische Timer etc.
-        if (tower.type === 'trap') {
-             if (tower.isActive) {
-                 tower.activeTimer -= deltaTime;
-                 if (tower.activeTimer <= 0) tower.isActive = false;
-             }
-        } else if (tower.type === 'sniper' && !findStrongestEnemy()) { // Aufladen, wenn kein Ziel
+        // Update spezifische Timer / Logik
+        if (tower.type === 'trap' && tower.isActive) {
+             tower.activeTimer -= deltaTime;
+             if (tower.activeTimer <= 0) tower.isActive = false;
+        } else if (tower.type === 'sniper' && !findStrongestEnemy()) {
              tower.chargePercent = Math.min(tower.maxCharge, tower.chargePercent + tower.chargeRate * deltaTime);
         }
     }
 }
 
 function updateFlamethrower(tower) {
-    tower.cooldownTimer = tower.cooldown; // Reset cooldown fast, quasi dauerhaft
+    tower.cooldownTimer = tower.cooldown; // Reset Cooldown für nächsten "Puls"
     let towerCenterX = tower.x + tower.width/2;
     let towerCenterY = tower.y + tower.height/2;
+    const typeConfig = TOWER_TYPES.flamethrower;
 
     for (let enemy of enemies) {
         let enemyCenterX = enemy.x + enemy.width/2;
         let enemyCenterY = enemy.y + enemy.height/2;
         if (distanceSq(towerCenterX, towerCenterY, enemyCenterX, enemyCenterY) < tower.range * tower.range) {
-            // Gegner in Reichweite, Burn Effekt anwenden/erneuern
             enemy.statusEffects.burning = {
-                 duration: tower.burnDuration,
-                 damageInterval: 0.5, // Schaden alle 0.5s
-                 damageTimer: 0, // Sofort erster Tick? Oder 0.5?
-                 damageAmount: enemy.maxHealth * 0.05 // 5% Max HP Schaden pro Intervall
+                 duration: typeConfig.burnDuration,
+                 damageInterval: 0.5, damageTimer: 0.5, // Start timer at interval
+                 damageAmount: typeConfig.burnDamagePerSecond * 0.5 // Schaden pro Intervall
             };
         }
     }
-    // Visuellen Effekt hinzufügen (Partikel) -> Komplexer, ausgelassen
 }
 
 function updateSniper(tower) {
     let target = findStrongestEnemy();
     if (target) {
         tower.cooldownTimer = tower.cooldown; // Reset Cooldown
-        let damage = tower.baseDamage * (1 + tower.chargePercent / 100);
+        const typeConfig = TOWER_TYPES.sniper;
+        let damage = typeConfig.baseDamage * (1 + tower.chargePercent / 100);
 
-        // Projektil erzeugen (oder direkter Treffer?) - Direkter Treffer einfacher
         console.log(`Sniper Schuss auf ${target.type}! Schaden: ${damage.toFixed(0)} (Bonus: ${tower.chargePercent.toFixed(0)}%)`);
         target.currentHealth -= damage;
         tower.chargePercent = 0; // Ladung verbraucht
 
         if (target.currentHealth <= 0) {
-             // Finde Index und rufe handleEnemyDefeat auf
              let index = enemies.indexOf(target);
              if(index > -1) handleEnemyDefeat(target, index);
+             else console.log("Error: Sniper target already removed?");
         }
-         // Visuellen Effekt hinzufügen (Schusslinie) -> Komplexer, ausgelassen
     } else {
-        // Kein starkes Ziel, Cooldown nicht zurücksetzen, weiter aufladen
+        // Kein starkes Ziel, Cooldown NICHT zurücksetzen, damit weiter geladen wird.
+        // Aufladen passiert im Haupt-updateTowers loop.
     }
 }
 
 function updateTrap(tower) {
-    tower.cooldownTimer = tower.cooldown; // Reset Cooldown
+    tower.cooldownTimer = tower.cooldown; // Reset Cooldown für nächste Aktivierung
     tower.isActive = true;
     tower.activeTimer = tower.activeDuration;
-    // Falle wird jetzt in drawTowers gezeichnet, wenn isActive
+    const typeConfig = TOWER_TYPES.trap;
 
-    // Kollision mit Gegnern, wenn aktiv
+    // Kollision prüfen, während aktiv
     for (let enemy of enemies) {
-         // Einfache Kollision der Falle (am Pfad) mit Gegner Mittelpunkt
          let enemyCenterX = enemy.x + enemy.width/2;
          let enemyCenterY = enemy.y + enemy.height/2;
+         // Falle ist am Turmstandort
          if (tower.isActive &&
-             Math.abs(enemyCenterX - tower.pathX) < tower.range + enemy.width/2 &&
-             Math.abs(enemyCenterY - tower.pathY) < tower.range + enemy.height/2 )
+             Math.abs(enemyCenterX - (tower.x + tower.width/2)) < tower.range + enemy.width/2 &&
+             Math.abs(enemyCenterY - (tower.y + tower.height/2)) < tower.range + enemy.height/2 )
          {
-              enemy.currentHealth -= tower.damage;
+              enemy.currentHealth -= typeConfig.damage;
               enemy.statusEffects.slowed = {
-                   duration: tower.slowDuration,
-                   speedMultiplier: tower.slowFactor
+                   duration: typeConfig.slowDuration,
+                   speedMultiplier: typeConfig.slowFactor
               };
-              console.log(`Falle ausgelöst von ${enemy.type}! Schaden: ${tower.damage}, Slowed.`);
+              console.log(`Falle ausgelöst von ${enemy.type}! Schaden: ${typeConfig.damage}, Slowed.`);
               if (enemy.currentHealth <= 0) {
                     let index = enemies.indexOf(enemy);
                     if(index > -1) handleEnemyDefeat(enemy, index);
+                     else console.log("Error: Trap target already removed?");
               }
-              // Falle trifft nur einmal pro Aktivierung? Oder jeden Gegner der drüber läuft?
-              // Aktuell jeden Gegner, solange aktiv.
+              // TODO: Soll Falle nur einmal pro Aktivierung auslösen oder jeden Gegner?
+              // Aktuell: Jeden Gegner, der während der kurzen Aktivzeit drüber läuft.
          }
     }
 }
-
 
 function checkDropsCollection() {
     if (gameState !== 'playing') return;
@@ -539,126 +556,140 @@ function checkDropsCollection() {
     for (let i = drops.length - 1; i >= 0; i--) {
         let drop = drops[i];
         let dropRect = { x: drop.x, y: drop.y, width: drop.width, height: drop.height };
-        // Einfache Rechteck-Kollision
-        if (playerRect.x < dropRect.x + dropRect.width &&
-            playerRect.x + playerRect.width > dropRect.x &&
-            playerRect.y < dropRect.y + dropRect.height &&
-            playerRect.y + playerRect.height > dropRect.y) {
-
-            drops.splice(i, 1); // Drop entfernen
-            triggerLootbox();   // Lootbox starten
-            break; // Nur einen Drop pro Frame? Sicherer.
+        if (playerRect.x < dropRect.x + dropRect.width && playerRect.x + playerRect.width > dropRect.x &&
+            playerRect.y < dropRect.y + dropRect.height && playerRect.y + playerRect.height > dropRect.y) {
+            drops.splice(i, 1); triggerLootbox(); break;
         }
     }
 }
 
 function triggerLootbox() {
     console.log("Lootbox getriggert!");
+    nextStateAfterPopup = gameState; // Merken wo wir waren
     setGameState('lootboxOpening');
     lootboxTextP.textContent = "You found a Lootbox!";
     lootboxOpenButton.style.display = 'inline-block';
     lootboxOkButton.style.display = 'none';
+    lootboxPopupDiv.style.display = 'block'; // Sicherstellen, dass es sichtbar ist
 }
 
 function openLootbox() {
     lootboxOpenButton.style.display = 'none';
     lootboxTextP.textContent = "Opening...";
-    // Simple animation placeholder
-    setTimeout(() => revealLootboxReward(), 500); // Warte 0.5s
-    // Hier könnte man lootboxRevealTimer verwenden für eine Canvas-Animation
+    setTimeout(() => revealLootboxReward(), 500);
 }
 
 function revealLootboxReward() {
     let rewardText = "";
-    if (Math.random() < 0.6) { // 60% Chance auf Level
+    if (Math.random() < 0.6) { // 60% Level
         let levelsGained = Math.floor(Math.random() * 3) + 1;
         rewardText = `You gained ${levelsGained} Level(s)!`;
-        // Direkte XP-Gabe ist einfacher zu handhaben
-        gainXP(levelsGained * player.xpForNextLevel); // Gibt genug XP für die Level
-    } else { // 40% Chance auf Turm
+        gainXP(levelsGained * player.xpForNextLevel);
+    } else { // 40% Turm
         let availableTowerTypes = Object.keys(TOWER_TYPES);
         let chosenTowerType = getRandomElement(availableTowerTypes);
         let success = placeRandomTower(chosenTowerType);
-        if (success) {
-             rewardText = `You received a ${TOWER_TYPES[chosenTowerType].name}!`;
-        } else {
-             rewardText = "You found a tower, but there was no space! (+500 XP instead)";
-             gainXP(500);
-        }
+        if (success) { rewardText = `You received a ${TOWER_TYPES[chosenTowerType].name}!`; }
+        else { rewardText = "No space for a tower! (+500 XP instead)"; gainXP(500); }
     }
     lootboxTextP.textContent = rewardText;
     lootboxOkButton.style.display = 'inline-block';
-    // Nicht automatisch gameState ändern, warten auf OK
+    setGameState('lootboxRevealing'); // Zustand wechseln damit OK Button funktioniert
 }
 
 function placeRandomTower(typeKey) {
     const typeConfig = TOWER_TYPES[typeKey];
-    const towerWidth = 30;
-    const towerHeight = 30;
-    let attempts = 0;
-    const maxAttempts = 20;
+    const towerWidth = 30; const towerHeight = 30;
+    let attempts = 0; const maxAttempts = 30; // Mehr Versuche
 
     while (attempts < maxAttempts) {
         attempts++;
-        // Zufällige Position, aber nicht zu nah am Rand oder Pfad
-        let randX = Math.random() * (canvas.width - towerWidth - 40) + 20; // 20px Rand
+        let randX = Math.random() * (canvas.width - towerWidth - 40) + 20;
         let randY = Math.random() * (canvas.height - towerHeight - 40) + 20;
+        let towerRect = {x: randX, y: randY, width: towerWidth, height: towerHeight};
 
-        // Prüfe Kollision mit Pfad (sehr grob)
-        let onPath = false;
-        for(let i = 0; i < enemyPath.length - 1; i++) {
-             // Simplifizierte Prüfung: Ist Turm in der Nähe einer Pfadlinie?
-             // (Eine präzisere Prüfung wäre komplexer)
-            let midPathX = (enemyPath[i].x + enemyPath[i+1].x) / 2;
-            let midPathY = (enemyPath[i].y + enemyPath[i+1].y) / 2;
-             if (distanceSq(randX + towerWidth/2, randY + towerHeight/2, midPathX, midPathY) < 100*100) { // 100px Radius um Pfadmitte
-                 onPath = true; break;
+        // Kollision mit Pfad (genauer: Nähe zu Pfadsegmenten)
+        let tooCloseToPath = false;
+        const minPathDistanceSq = 50 * 50; // Mindestabstand zum Pfad im Quadrat (50px)
+        for(let i = 0; i < enemyPath.length -1; i++){
+            // Prüfe Distanz zum Liniensegment (komplexer, hier vereinfacht: Distanz zu Endpunkten)
+             if (distanceSq(towerRect.x + towerWidth/2, towerRect.y + towerHeight/2, enemyPath[i].x, enemyPath[i].y) < minPathDistanceSq ||
+                 distanceSq(towerRect.x + towerWidth/2, towerRect.y + towerHeight/2, enemyPath[i+1].x, enemyPath[i+1].y) < minPathDistanceSq )
+             {
+                  tooCloseToPath = true; break;
              }
         }
-         if (onPath) continue; // Zu nah am Pfad, neuer Versuch
+        if (tooCloseToPath) continue;
 
-        // Prüfe Kollision mit anderen Türmen
+        // Kollision mit anderen Türmen
         let collidesWithTower = false;
         for (const otherTower of towers) {
-             if (randX < otherTower.x + otherTower.width && randX + towerWidth > otherTower.x &&
-                 randY < otherTower.y + otherTower.height && randY + towerHeight > otherTower.y) {
+             let otherRect = {x: otherTower.x, y: otherTower.y, width: otherTower.width, height: otherTower.height};
+             if (towerRect.x < otherRect.x + otherRect.width && towerRect.x + towerRect.width > otherRect.x &&
+                 towerRect.y < otherRect.y + otherRect.height && towerRect.y + towerRect.height > otherRect.y) {
                  collidesWithTower = true; break;
              }
         }
-        if (collidesWithTower) continue; // Kollidiert, neuer Versuch
+        if (collidesWithTower) continue;
 
-        // Gültige Position gefunden!
-         let newTower = {
-             type: typeKey,
-             x: randX, y: randY,
-             width: towerWidth, height: towerHeight,
-             color: typeConfig.color, range: typeConfig.range,
-             cooldown: typeConfig.cooldown, cooldownTimer: Math.random() * typeConfig.cooldown, // Start mit zuf. Cooldown
-             // Typ-spezifische Werte
+        // Gültige Position
+        let newTower = {
+             type: typeKey, x: randX, y: randY, width: towerWidth, height: towerHeight,
+             color: typeConfig.color, range: typeConfig.range, cooldown: typeConfig.cooldown,
+             cooldownTimer: Math.random() * typeConfig.cooldown, // Start mit zuf. Cooldown
              ...(typeKey === 'sniper' && { baseDamage: typeConfig.baseDamage, chargeRate: typeConfig.chargeRate, maxCharge: typeConfig.maxCharge, chargePercent: 0 }),
-             ...(typeKey === 'flamethrower' && { damage: typeConfig.damage, burnDuration: typeConfig.burnDuration, vulnerability: typeConfig.vulnerability }),
-             ...(typeKey === 'trap' && { damage: typeConfig.damage, slowDuration: typeConfig.slowDuration, slowFactor: typeConfig.slowFactor, activeDuration: typeConfig.activeDuration, isActive: false, activeTimer: 0, pathX: randX + towerWidth/2, pathY: randY + towerHeight/2 }) // Falle wird dort platziert wo der Turm steht
+             ...(typeKey === 'flamethrower' && { burnDamagePerSecond: typeConfig.burnDamagePerSecond, burnDuration: typeConfig.burnDuration, vulnerability: typeConfig.vulnerability }),
+             ...(typeKey === 'trap' && { damage: typeConfig.damage, slowDuration: typeConfig.slowDuration, slowFactor: typeConfig.slowFactor, activeDuration: typeConfig.activeDuration, isActive: false, activeTimer: 0 })
         };
-         // Für Falle: Position auf dem Pfad finden? Aktuell nicht.
-
         towers.push(newTower);
         console.log(`Turm platziert: ${typeConfig.name} at (${randX.toFixed(0)}, ${randY.toFixed(0)})`);
-        return true; // Erfolgreich platziert
+        return true;
     }
     console.log("Kein Platz für Turm gefunden nach", maxAttempts, "Versuchen.");
-    return false; // Kein Platz gefunden
+    return false;
 }
 
+function gainXP(amount) {
+    if (gameState === 'gameOver') return; // Keine XP nach Game Over
+    player.xp += Math.round(amount); // Runde XP
+    console.log(`Gained ${Math.round(amount)} XP. Total: ${player.xp}/${player.xpForNextLevel}`);
+    while (player.xp >= player.xpForNextLevel) { // While-Schleife für mehrere Level Ups gleichzeitig
+        levelUp();
+    }
+}
 
-function gainXP(amount) { /* ... wie vorher ... */ }
-function levelUp() { /* ... wie vorher, setzt gameState='selectingPerk' ... */ }
-function applyPerk(perkType) { /* ... wie vorher ... */ }
+function levelUp() {
+    player.level++;
+    player.xp -= player.xpForNextLevel;
+    player.xpForNextLevel = Math.floor(BASE_XP_FOR_NEXT_LEVEL * Math.pow(1.5, player.level - 1)); // Exponentiell steigend
+    console.log(`LEVEL UP! Level ${player.level}. Next level at ${player.xpForNextLevel} XP.`);
+    nextStateAfterPopup = gameState; // Merken wo wir waren (sollte 'playing' oder 'betweenWaves' sein)
+    setGameState('selectingPerk');
+}
+
+function applyPerk(perkType) {
+    switch (perkType) {
+        case 'speed':
+            player.shootSpeedMultiplier *= 1.5;
+            player.currentShootInterval = BASE_SHOOT_INTERVAL / player.shootSpeedMultiplier;
+            break;
+        case 'damage':
+            player.damageMultiplier *= 1.2;
+            player.currentDamage = BASE_PROJECTILE_DAMAGE * player.damageMultiplier;
+            break;
+        case 'shotgun':
+            player.projectileCount *= 2;
+            break;
+    }
+    console.log("Perk applied:", perkType, "New Stats:", player);
+    setGameState(nextStateAfterPopup); // Zurück zum Spielzustand vor dem Perk
+}
 
 // --- Zustandsmanagement ---
 function setGameState(newState) {
-    if (gameState === newState) return; // Nichts tun wenn Zustand gleich bleibt
-
+    if (gameState === newState) return;
     console.log(`Game State: ${gameState} -> ${newState}`);
+    let oldState = gameState;
     gameState = newState;
 
     // UI Elemente anpassen
@@ -668,149 +699,116 @@ function setGameState(newState) {
     infoPopupDiv.style.display = (gameState === 'infoPopup') ? 'block' : 'none';
     lootboxPopupDiv.style.display = (gameState === 'lootboxOpening' || gameState === 'lootboxRevealing') ? 'block' : 'none';
 
+    if (newState === 'playing' || newState === 'betweenWaves') { canvas.focus(); }
 
-    if (newState === 'playing' || newState === 'betweenWaves') {
-        canvas.focus();
+    // Aufräumen oder Initialisieren beim Zustandswechsel
+    if (newState === 'gameOver') {
+        // Optional: Musik stoppen, Effekte clearen etc.
+    }
+    if (oldState === 'lootboxRevealing' && newState !== 'lootboxOpening') {
+         // Sicherstellen, dass Lootbox OK Button versteckt wird, wenn man sie verlässt
+         lootboxOkButton.style.display = 'none';
     }
 }
 
 function checkNewEnemyIntroduction() {
-    let waveIntroducesNewEnemy = false;
     let newEnemyKey = null;
-
-    if (currentWave === ENEMY_INTRO_WAVES[0] && !introducedEnemies['tank']) {
-        newEnemyKey = 'tank';
-    } else if (currentWave === ENEMY_INTRO_WAVES[1] && !introducedEnemies['sprinter']) {
-         newEnemyKey = 'sprinter';
-    } // Weitere else if für mehr Gegner
+    if (currentWave === ENEMY_INTRO_WAVES[0] && !introducedEnemies['tank']) { newEnemyKey = 'tank'; }
+    else if (currentWave === ENEMY_INTRO_WAVES[1] && !introducedEnemies['sprinter']) { newEnemyKey = 'sprinter'; }
 
     if (newEnemyKey) {
-        availableEnemyTypes.push(newEnemyKey); // Füge Typ zu möglichen Spawns hinzu
+        availableEnemyTypes.push(newEnemyKey);
         enemyToIntroduce = ENEMY_TYPES[newEnemyKey];
-        introducedEnemies[newEnemyKey] = true; // Markiere als eingeführt (Popup wird gezeigt)
-        nextStateAfterPopup = 'playing'; // Nach dem Popup geht's weiter
+        introducedEnemies[newEnemyKey] = true;
+        nextStateAfterPopup = 'playing'; // Nach dem Popup soll die Welle starten
         setGameState('infoPopup');
-        infoTextP.textContent = `NEW ENEMY APPROACHING: ${enemyToIntroduce.name}! ${enemyToIntroduce.description}`;
-        return true; // Popup wurde getriggert
+        infoTextP.textContent = `NEW ENEMY APPROACHING: ${enemyToIntroduce.name.toUpperCase()}! ${enemyToIntroduce.description}`;
+        infoPopupDiv.style.display = 'block'; // Sicherstellen, dass es sichtbar ist
+        return true;
     }
-    return false; // Kein Popup
+    return false;
 }
-
 
 // --- Reset Funktion ---
 function resetGame() {
     player = {
-        x: canvas.width / 2 - PLAYER_WIDTH / 2,
-        y: canvas.height / 2 - PLAYER_HEIGHT / 2,
-        width: PLAYER_WIDTH, height: PLAYER_HEIGHT,
-        speed: PLAYER_BASE_SPEED, // Pixel pro Sekunde
-        color: 'blue', dx: 0, dy: 0,
-        health: PLAYER_MAX_HEALTH, level: 1, xp: 0,
-        xpForNextLevel: BASE_XP_FOR_NEXT_LEVEL,
+        x: canvas.width / 2 - PLAYER_WIDTH / 2, y: canvas.height / 2 - PLAYER_HEIGHT / 2,
+        width: PLAYER_WIDTH, height: PLAYER_HEIGHT, speed: PLAYER_BASE_SPEED,
+        color: 'blue', dx: 0, dy: 0, health: PLAYER_MAX_HEALTH,
+        level: 1, xp: 0, xpForNextLevel: BASE_XP_FOR_NEXT_LEVEL,
         shootSpeedMultiplier: 1, damageMultiplier: 1, projectileCount: 1,
-        currentShootInterval: BASE_SHOOT_INTERVAL, // Sekunden
-        currentDamage: BASE_PROJECTILE_DAMAGE
+        currentShootInterval: BASE_SHOOT_INTERVAL, currentDamage: BASE_PROJECTILE_DAMAGE
     };
     enemies = []; projectiles = []; drops = []; towers = [];
-    keys = {};
-    currentWave = 0; // Wird in betweenWaves auf 1 gesetzt
-    waveTimer = 0; intermissionTimer = 3; // Kurze Startpause
-    enemySpawnTimer = 0; shootTimer = 0;
-    nearestEnemyForLaser = null;
-    availableEnemyTypes = ['goon']; // Reset auf Goons
-    introducedEnemies = {}; // Reset Popups
+    keys = {}; currentWave = 0; waveTimer = 0; intermissionTimer = 3; // 3s Startpause
+    enemySpawnTimer = 0; shootTimer = 0; nearestEnemyForLaser = null;
+    availableEnemyTypes = ['goon']; introducedEnemies = {};
+    lastTimestamp = 0; // Wichtig für deltaTime Reset
+    deltaTime = 0;
 
-    // Wichtig: Nicht direkt 'playing', sondern 'betweenWaves', damit Welle 1 startet
-    setGameState('betweenWaves');
+    setGameState('betweenWaves'); // Startet die erste "Pause" vor Welle 1
 }
 
 // --- Update & Draw (Hauptschleife) ---
-
 function update() {
     // Zustandsabhängige Logik
     if (gameState === 'playing') {
-        movePlayer();
-        moveEnemies(); // Beinhaltet Status-Effekte
-        moveProjectiles();
-        updateTowers();
-        checkDropsCollection();
+        movePlayer(); moveEnemies(); moveProjectiles(); updateTowers(); checkDropsCollection();
 
-        // Gegner Spawning Timer (deltaTime basiert)
+        // Gegner Spawning
         enemySpawnTimer -= deltaTime;
-        const currentSpawnInterval = Math.max(0.1, (BASE_ENEMY_SPAWN_INTERVAL / (1 + (currentWave - 1) * 0.2)) / availableEnemyTypes.length ); // Schneller + mehr Typen = schneller spawn
+        // Schwierigere Spawnrate: Basis-Intervall wird kürzer, geteilt durch Anzahl Typen
+        const spawnIntervalDivisor = Math.max(1, availableEnemyTypes.length * 0.8); // Jeder Typ macht es etwas schneller
+        const currentBaseSpawnInterval = Math.max(0.2, 1.5 / (1 + (currentWave - 1) * 0.1)); // Basis wird schneller
+        const currentSpawnInterval = currentBaseSpawnInterval / spawnIntervalDivisor;
         if (enemySpawnTimer <= 0) {
             spawnEnemy();
-            enemySpawnTimer = currentSpawnInterval * (0.8 + Math.random() * 0.4); // Leichte Zufälligkeit
+            enemySpawnTimer = currentSpawnInterval * (0.8 + Math.random() * 0.4); // +Zufall
         }
 
-        // Schießen Timer (deltaTime basiert)
+        // Schießen Timer
         shootTimer -= deltaTime;
-        if (shootTimer <= 0) {
-            shoot();
-            shootTimer = player.currentShootInterval;
-        }
+        if (shootTimer <= 0) { shoot(); /* Timer Reset passiert in shoot() */ }
 
-        // Wellen Timer (deltaTime basiert)
+        // Wellen Timer
         waveTimer -= deltaTime;
-        if (waveTimer <= 0) {
-            setGameState('betweenWaves');
-            intermissionTimer = INTERMISSION_DURATION;
-        }
+        if (waveTimer <= 0) { setGameState('betweenWaves'); intermissionTimer = INTERMISSION_DURATION; }
 
     } else if (gameState === 'betweenWaves') {
-        moveProjectiles(); // Projektile fliegen weiter
-        updateTowers(); // Türme können weiter schießen/aufladen
-        checkDropsCollection(); // Drops aufsammeln
-        nearestEnemyForLaser = findNearestEnemy(); // Laser zielt weiter
-
+        moveProjectiles(); updateTowers(); checkDropsCollection();
+        nearestEnemyForLaser = findNearestEnemy();
         intermissionTimer -= deltaTime;
         if (intermissionTimer <= 0) {
-            currentWave++;
-            waveTimer = WAVE_DURATION;
-            enemySpawnTimer = 0;
-             // Prüfen ob neue Gegner eingeführt werden
-            if (!checkNewEnemyIntroduction()) {
-                 // Wenn kein Popup kam, direkt starten
-                 setGameState('playing');
-            }
+            currentWave++; waveTimer = WAVE_DURATION; enemySpawnTimer = 0;
+            if (!checkNewEnemyIntroduction()) { setGameState('playing'); }
         }
     } else if (gameState === 'lootboxRevealing') {
-         lootboxRevealTimer -= deltaTime;
-         if (lootboxRevealTimer <= 0) {
-              // Eigentliche Belohnungsanzeige (passiert jetzt über Button Klick)
-         }
+         // Nichts tun, warten auf OK Button Klick
+    } else if (gameState === 'infoPopup' || gameState === 'selectingPerk' || gameState === 'lootboxOpening') {
+         // Spiel pausiert, warte auf Button Klick in diesen Zuständen
     }
-    // In anderen Zuständen ('start', 'gameOver', 'selectingPerk', 'infoPopup', 'lootboxOpening') wird die meiste Logik pausiert.
+    // Im Start/Game Over Zustand passiert sowieso nichts in update()
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     if (gameState === 'start') {
-        drawStartScreen(); // Wie vorher
+        drawStartScreen();
     } else if (gameState === 'gameOver') {
-        drawGameOverScreen(); // Wie vorher
-    } else { // Alle anderen Zustände zeichnen das Spielfeld + ggf. Overlays
-        drawPath();
-        drawDrops();
-        drawTowers(); // Türme hinter Gegnern? Oder davor? Davor.
+        drawGameOverScreen();
+    } else {
+        drawPath(); drawDrops(); drawTowers();
         for (const enemy of enemies) drawEnemy(enemy);
         for (const p of projectiles) drawProjectile(p);
-        drawPlayer();
-        drawUI(); // Muss nach allem anderen sein für Overlay
-
-        // Popups werden über HTML gesteuert, hier könnte man Canvas-Versionen zeichnen
-        // if (gameState === 'infoPopup') drawInfoPopupOnCanvas();
-        // if (gameState === 'lootboxOpening' || gameState === 'lootboxRevealing') drawLootboxOnCanvas();
-        // if (gameState === 'selectingPerk') drawPerkSelectionOnCanvas();
+        drawPlayer(); drawUI();
     }
 }
 
 // === Game Loop ===
 function gameLoop(timestamp) {
-    deltaTime = (timestamp - lastTimestamp) / 1000; // Zeit in Sekunden
-    // Verhindere große Sprünge wenn Tab inaktiv war etc. (max 1/15s Schritt)
-    deltaTime = Math.min(deltaTime, 1/15);
+    if (!lastTimestamp) lastTimestamp = timestamp; // Initialisierung beim ersten Frame
+    deltaTime = (timestamp - lastTimestamp) / 1000;
+    deltaTime = Math.min(deltaTime, 1 / 15); // Max Delta Time (verhindert Riesensprünge)
     lastTimestamp = timestamp;
 
     update();
@@ -820,28 +818,38 @@ function gameLoop(timestamp) {
 }
 
 // === Event Listener Setup ===
-// Tastatur (wie vorher)
-window.addEventListener('keydown', (e) => { /* ... */ });
-window.addEventListener('keyup', (e) => { /* ... */ });
+window.addEventListener('keydown', (e) => {
+    if (gameState === 'playing' || gameState === 'betweenWaves') {
+         keys[e.key] = true;
+    }
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) {
+        e.preventDefault(); // Verhindert Scrollen
+    }
+});
+window.addEventListener('keyup', (e) => {
+    // Key up sollte immer registriert werden, um Hängenbleiben zu vermeiden
+    keys[e.key] = false;
+});
 
 // UI Buttons
-playButton.addEventListener('click', () => resetGame()); // Startet jetzt via resetGame
-retryButton.addEventListener('click', () => resetGame());
-perkButtons.forEach(button => button.addEventListener('click', (e) => { /* ... wie vorher ... */ }));
+playButton.addEventListener('click', () => { if(gameState === 'start') resetGame(); });
+retryButton.addEventListener('click', () => { if(gameState === 'gameOver') resetGame(); });
+perkButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+        if (gameState === 'selectingPerk') {
+            const perkType = e.target.getAttribute('data-perk');
+            if (perkType) applyPerk(perkType);
+        }
+    });
+});
 
-// Neue Popup Buttons
-infoOkButton.addEventListener('click', () => {
-    setGameState(nextStateAfterPopup); // Zurück zum Spiel/Pause
-});
-lootboxOpenButton.addEventListener('click', () => {
-    openLootbox();
-});
-lootboxOkButton.addEventListener('click', () => {
-    setGameState('playing'); // Zurück zum Spiel
-});
+// Popup Buttons
+infoOkButton.addEventListener('click', () => { if(gameState === 'infoPopup') setGameState(nextStateAfterPopup); });
+lootboxOpenButton.addEventListener('click', () => { if(gameState === 'lootboxOpening') openLootbox(); });
+lootboxOkButton.addEventListener('click', () => { if(gameState === 'lootboxRevealing') setGameState(nextStateAfterPopup); });
 
 
 // --- Initialisierung ---
 console.log("Spiel initialisiert. Warte auf Start.");
-setGameState('start');
+setGameState('start'); // Starte im Startbildschirm
 requestAnimationFrame(gameLoop); // Starte die Schleife
