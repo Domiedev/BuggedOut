@@ -4,6 +4,9 @@
 /* style.css */
 
 /* Grundlegendes Body-Styling */
+/* style.css */
+
+/* Grundlegendes Body-Styling */
 body {
     display: flex;
     flex-direction: column;
@@ -20,6 +23,8 @@ canvas {
     /* background-color: #ddd; */ /* <<< DIESE ZEILE ENTFERNEN ODER AUSKOMMENTIEREN */
     /* Zentrierung wird durch body align-items erreicht */
 }
+
+/* ... (Rest deiner CSS-Regeln bleibt gleich) ... */
 
 /* ... (Rest deiner CSS-Regeln bleibt gleich) ... */
 
