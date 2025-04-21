@@ -1,22 +1,27 @@
 /* style.css */
 
 /* Grundlegendes Body-Styling */
+/* style.css */
+
+/* Grundlegendes Body-Styling */
 body {
     display: flex;
     flex-direction: column;
     align-items: center; /* Zentriert Elemente horizontal */
     font-family: sans-serif;
-    background-color: #f0f0f0;
-    margin: 0; /* Entfernt Standard-Body-Margin */
-    padding-top: 20px; /* Etwas Platz oben */
+    background-color: #f0f0f0; /* Hintergrund der *Seite*, nicht des Spiels */
+    margin: 0;
+    padding-top: 20px;
 }
 
 /* Canvas Styling */
 canvas {
     border: 1px solid black;
-    background-color: #ddd; /* Heller grauer Hintergrund für das Spielfeld */
+    /* background-color: #ddd; */ /* <<< DIESE ZEILE ENTFERNEN ODER AUSKOMMENTIEREN */
     /* Zentrierung wird durch body align-items erreicht */
 }
+
+/* ... (Rest deiner CSS-Regeln bleibt gleich) ... */
 
 /* Container für die permanenten UI-Buttons */
 #ui-layer {
