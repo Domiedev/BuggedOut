@@ -3,12 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Tower Defense</title>
+    <title>Bugged Out - Tower Defense</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Style für den Container der UI-Buttons */
+        #ui-layer {
+            position: relative; /* Positioniert relativ zum normalen Fluss */
+            text-align: center; /* Zentriert die Buttons */
+            margin-top: 15px;  /* Abstand zum Canvas */
+            min-height: 100px; /* Platzhalter, damit Layout nicht springt */
+        }
+
+        /* Style für die Hauptbuttons */
+        #playButton, #retryButton {
+            display: none; /* Initial versteckt, JS steuert das */
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #4CAF50; /* Grün */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 4px #999;
+        }
+        #playButton:hover, #retryButton:hover {
+            background-color: #45a049;
+        }
+         #playButton:active, #retryButton:active {
+            background-color: #3e8e41;
+            box-shadow: 0 2px #666;
+            transform: translateY(2px);
+        }
+
+
+        /* Style für die Perk-Auswahl Box */
+        #perkSelection {
+            display: none; /* Initial versteckt */
+            border: 2px solid #555;
+            border-radius: 8px;
+            padding: 15px;
+            background: rgba(220, 220, 220, 0.9); /* Leicht transparent */
+            margin-top: 10px;
+            display: inline-block; /* Nimmt nur die benötigte Breite */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        #perkSelection h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        /* Style für die Perk-Buttons */
+        .perkButton {
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 5px;
+            border: 1px solid #aaa;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+        .perkButton:hover {
+            background-color: #ddd;
+            border-color: #888;
+        }
+
+    </style>
 </head>
 <body>
-    <h1>Mein kleines Tower Defense Spiel</h1>
-    <canvas id="gameCanvas" width="800" height="600"></canvas> 
-    <script src="script.js"></script> 
-    </body>
+    <h1>BUGGED OUT</h1> <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <div id="ui-layer">
+        <button id="playButton">Play</button>
+
+        <button id="retryButton">Retry</button>
+
+        <div id="perkSelection">
+            <h3>Level Up! Choose a Perk:</h3>
+            <button class="perkButton" data-perk="speed">Shoot Speed +50%</button>
+            <button class="perkButton" data-perk="damage">Damage +20%</button>
+            <button class="perkButton" data-perk="shotgun">Shotgun (Projectiles x2)</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
 </html>
