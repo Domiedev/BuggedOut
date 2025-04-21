@@ -1,0 +1,14 @@
+body {
+    display: flex;
+    flex-direction: column; /* Titel über dem Canvas */
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Zentriert vertikal auf der Seite */
+    margin: 0;
+    background-color: #f0f0f0; /* Heller Hintergrund */
+}
+
+canvas {
+    border: 1px solid black; /* Ein Rand um das Spielfeld */
+    background-color: #ddd; /* Grauer Hintergrund für das Spiel */
+}
