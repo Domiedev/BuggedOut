@@ -10,7 +10,7 @@ const imageSources = { // Pfade zu deinen Bildern (stelle sicher, dass sie stimm
     playerDown: 'playerdown.png',
     playerLeft: 'playerleft.png',
     playerRight: 'playerright.png',
-    goon1: 'goon1.png',
+    goon1: 'Goon1.png',
     background: 'background.png'
 };
 // === HTML Elemente ===
