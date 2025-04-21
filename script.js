@@ -31,7 +31,7 @@ const BASE_XP_FOR_NEXT_LEVEL = 500;
 const WAVE_DURATION = 30; // Sekunden
 const INTERMISSION_DURATION = 10; // Sekunden
 const ENEMY_INTRO_WAVES = [3, 6]; // Bei welchen Wellen neue Gegner kommen
-const ENEMY_DROP_CHANCE = 0.1; // 10% Chance für Diamant / Lootbox
+const ENEMY_DROP_CHANCE = 0.02; // 10% Chance für Diamant / Lootbox
 
 // --- Player Config ---
 const PLAYER_BASE_SPEED = 200; // Pixel pro Sekunde
@@ -935,42 +935,49 @@ function levelUp() {
     setGameState('selectingPerk');
 }
 
-// === applyPerk (angepasst für mehrere Level-Ups) ===
+// === applyPerk (angepasst für mehrere Level-Ups, XP Reset & Perk Balance) ===
 function applyPerk(perkType) {
     if (!player || gameState !== 'selectingPerk') return; // Safety check
 
     // 1. Apply the chosen perk effect
     switch (perkType) {
-        case 'speed': player.shootSpeedMultiplier *= 1.5; player.currentShootInterval = BASE_SHOOT_INTERVAL / player.shootSpeedMultiplier; break;
-        case 'damage': player.damageMultiplier *= 1.2; player.currentDamage = BASE_PROJECTILE_DAMAGE * player.damageMultiplier; break;
-        case 'shotgun': player.projectileCount = Math.min(16, player.projectileCount * 2); break; // Cap projectile count
-        // Add more perks here if needed
+        case 'speed': // <<<< GEÄNDERT: 5% Speed Increase
+            player.shootSpeedMultiplier *= 1.05; // Increase speed factor
+            player.currentShootInterval = BASE_SHOOT_INTERVAL / player.shootSpeedMultiplier; // Recalculate interval
+            break;
+        case 'damage': // <<<< GEÄNDERT: 2% Damage Increase
+             player.damageMultiplier *= 1.02; // Increase damage factor
+             player.currentDamage = BASE_PROJECTILE_DAMAGE * player.damageMultiplier; // Recalculate damage
+             break;
+        case 'shotgun': // <<<< GEÄNDERT: +1 Projectile
+            player.projectileCount = Math.min(16, player.projectileCount + 1); // Add 1 projectile, cap at 16
+            break;
+        // Füge hier bei Bedarf weitere Perks hinzu
     }
     console.log("Perk applied:", perkType, "New Stats:", player);
 
-    // 2. Process the level up associated with this perk selection
+    // 2. Verarbeite das mit dieser Perk-Auswahl verbundene Level-Up
     player.level++;
-    const xpRequiredForThisLevel = player.xpForNextLevel; // Store before recalculating
-    player.xp -= xpRequiredForThisLevel; // Deduct cost for the level just gained
-    player.xpForNextLevel = Math.floor(BASE_XP_FOR_NEXT_LEVEL * Math.pow(1.5, player.level - 1)); // Calculate cost for the *next* level
-    console.log(`Level ${player.level} reached via perk selection. Next level at ${player.xpForNextLevel} XP.`);
+    // const xpRequiredForThisLevel = player.xpForNextLevel; // ALT: Variable nicht mehr benötigt
+    // player.xp -= xpRequiredForThisLevel; // ALT: Führte zu negativem XP
+    player.xp = 0; // <<<< GEÄNDERT: Setze XP auf 0 für das neue Level
+    player.xpForNextLevel = Math.floor(BASE_XP_FOR_NEXT_LEVEL * Math.pow(1.5, player.level - 1)); // Berechne Kosten für das *nächste* Level
+    console.log(`Level ${player.level} reached via perk selection. XP reset to 0. Next level at ${player.xpForNextLevel} XP.`);
 
-    // 3. Handle pending level ups (from lootbox or multiple standard level ups)
-    pendingLevelUps--; // Reduce the count of pending selections
+    // 3. Behandle anstehende Level-Ups (aus Lootbox oder mehreren Standard-Level-Ups)
+    pendingLevelUps--; // Reduziere die Anzahl der anstehenden Auswahlen
     console.log(`Pending level ups remaining: ${pendingLevelUps}`);
 
     if (pendingLevelUps > 0) {
-        // More selections needed, stay in 'selectingPerk' state
-        // Optional: Update perk buttons if choices should change
-        setGameState('selectingPerk'); // Re-trigger to potentially update UI if needed
+        // Weitere Auswahlen erforderlich, bleibe im Zustand 'selectingPerk'
+        setGameState('selectingPerk'); // Optional: Aktualisiere UI, falls nötig
     } else {
-        // All pending selections done, return to the previous game state
-        // Check if player has enough XP for *another* level immediately
+        // Alle anstehenden Auswahlen erledigt, prüfe, ob der Spieler sofort genug XP für *noch* ein Level hat
         if (player.xp >= player.xpForNextLevel && gameState !== 'gameOver') {
              console.log("Sufficient XP for another level immediately after perk selection.");
-             levelUp(); // Trigger the next level up process
+             levelUp(); // Starte den nächsten Level-Up-Prozess
         } else {
-             setGameState(nextStateAfterPopup); // Return to normal gameplay
+             setGameState(nextStateAfterPopup); // Kehre zum normalen Spiel zurück
         }
     }
 }
@@ -1218,23 +1225,35 @@ function gameLoop(timestamp) {
 
 // === Event Listener Setup ===
 window.addEventListener('keydown', (e) => {
-    // Allow movement input if in playable states
+    // Bewegungseingabe erlauben, wenn in spielbaren Zuständen
     if (gameState === 'playing' || gameState === 'betweenWaves') {
          keys[e.key] = true;
     }
 
-    // Skip Intermission with Spacebar
+    // Intermission mit Leertaste überspringen
     if (e.code === 'Space' && gameState === 'betweenWaves') {
         console.log("Skipping intermission!");
-        intermissionTimer = 0; // Set timer to 0, next update frame will start the wave
-        e.preventDefault(); // Prevent default spacebar action (like scrolling)
+        intermissionTimer = 0;
+        e.preventDefault(); // Standardverhalten der Leertaste verhindern
     }
 
-    // Prevent browser default actions for game keys (scrolling, etc.)
+    // Lootbox-Animation mit Leertaste überspringen <<<< NEUER TEIL HINZUGEFÜGT
+    if (e.code === 'Space' && gameState === 'lootboxSpinning') {
+        console.log("Skipping lootbox spin!");
+        // Prüfen, ob die Belohnung nicht bereits angezeigt wird, um Mehrfachaufrufe zu vermeiden
+        if (gameState === 'lootboxSpinning') {
+            revealLootboxReward();
+            lootboxSpinningTimer = 0; // Sicherstellen, dass der Timer stoppt
+        }
+        e.preventDefault(); // Standardverhalten der Leertaste verhindern
+    }
+
+    // Standard-Browseraktionen für Spieltasten verhindern
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "w", "a", "s", "d"].includes(e.key)) {
-        // Prevent default only if the game is in a state where these keys have an action
-        if (gameState === 'playing' || gameState === 'betweenWaves' || (e.code === 'Space' && gameState === 'betweenWaves')) {
-           e.preventDefault();
+        // Verhindere Standard nur, wenn das Spiel in einem Zustand ist, in dem diese Tasten eine Aktion haben
+        // <<<< BEDINGUNG ERWEITERT, um Leertaste im lootboxSpinning Zustand einzuschließen
+        if (gameState === 'playing' || gameState === 'betweenWaves' || (e.code === 'Space' && (gameState === 'betweenWaves' || gameState === 'lootboxSpinning'))) {
+             e.preventDefault();
         }
     }
 });
