@@ -1360,8 +1360,6 @@ function draw() {
 
 
     // Note: HTML Popups (Perk Selection, Info, Lootbox) will automatically draw over the canvas
-}
-
 // === Game Loop ===
 function gameLoop(timestamp) {
      // Warte, bis Bilder geladen sind und ein Spielzustand gesetzt ist
