@@ -56,7 +56,7 @@ const BASE_PROJECTILE_DAMAGE = 25;
 const PLAYER_WIDTH = 28;
 const PLAYER_HEIGHT = 32;
 const ENEMY_DROP_CHANCE = 0.02;
-const LOOTBOX_SPIN_DURATION = 4.0;
+const LOOTBOX_SPIN_DURATION = 2.0;
 const LOOTBOX_ITEM_WIDTH = 80;
 const LOOTBOX_FRICTION = 0.85;
 
@@ -829,13 +829,13 @@ function applyPerk(perkType) {
     if (!player || gameState != 'selectingPerk') return;
 
     if (perkType == 'speed') {
-        player.shootSpeedMultiplier *= 1.1;
+        player.shootSpeedMultiplier *= 5;
         player.currentShootInterval = BASE_SHOOT_INTERVAL / player.shootSpeedMultiplier;
     } else if (perkType == 'damage') {
-        player.damageMultiplier *= 1.1;
+        player.damageMultiplier *= 5;
         player.currentDamage = BASE_PROJECTILE_DAMAGE * player.damageMultiplier;
     } else if (perkType == 'shotgun') {
-        player.projectileCount = Math.min(16, player.projectileCount + 2);
+        player.projectileCount = Math.min(126, player.projectileCount + 5);
     }
 
     player.level++;
