@@ -56,7 +56,7 @@ const BASE_PROJECTILE_DAMAGE = 25;
 const PLAYER_WIDTH = 28;
 const PLAYER_HEIGHT = 32;
 const ENEMY_DROP_CHANCE = 0.02;
-const LOOTBOX_SPIN_DURATION = 2.0;
+const LOOTBOX_SPIN_DURATION = 4.0;
 const LOOTBOX_ITEM_WIDTH = 80;
 const LOOTBOX_FRICTION = 0.85;
 
@@ -124,7 +124,10 @@ function loadImages() {
         playerLeft: 'playerleft.png',
         playerRight: 'playerright.png',
         goon1: 'Goon1.png',
-        background: 'background.png'
+        bg1: '1.png',
+        bg2: '2.png',
+        bg3: '3.png',
+        bg4: '4.png'
     };
 
     let totalImages = Object.keys(imageSources).length;
@@ -829,13 +832,13 @@ function applyPerk(perkType) {
     if (!player || gameState != 'selectingPerk') return;
 
     if (perkType == 'speed') {
-        player.shootSpeedMultiplier *= 1.5;
+        player.shootSpeedMultiplier *= 1.1;
         player.currentShootInterval = BASE_SHOOT_INTERVAL / player.shootSpeedMultiplier;
     } else if (perkType == 'damage') {
-        player.damageMultiplier *= 1.5;
+        player.damageMultiplier *= 1.1;
         player.currentDamage = BASE_PROJECTILE_DAMAGE * player.damageMultiplier;
     } else if (perkType == 'shotgun') {
-        player.projectileCount = Math.min(126, player.projectileCount + 5);
+        player.projectileCount = Math.min(16, player.projectileCount + 2);
     }
 
     player.level++;
@@ -978,8 +981,11 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (imagesLoaded && gameImages.background && gameImages.background.naturalWidth > 0) {
-        ctx.drawImage(gameImages.background, 0, 0, canvas.width, canvas.height);
+    if (imagesLoaded) {
+        if (gameImages.bg1 && gameImages.bg1.naturalWidth > 0) ctx.drawImage(gameImages.bg1, 0, 0, canvas.width, canvas.height);
+        if (gameImages.bg2 && gameImages.bg2.naturalWidth > 0) ctx.drawImage(gameImages.bg2, 0, 0, canvas.width, canvas.height);
+        if (gameImages.bg3 && gameImages.bg3.naturalWidth > 0) ctx.drawImage(gameImages.bg3, 0, 0, canvas.width, canvas.height);
+        if (gameImages.bg4 && gameImages.bg4.naturalWidth > 0) ctx.drawImage(gameImages.bg4, 0, 0, canvas.width, canvas.height);
     } else {
         drawRect(0, 0, canvas.width, canvas.height, '#333');
     }
