@@ -123,7 +123,7 @@ function loadImages() {
         playerDown: 'playerdown.png',
         playerLeft: 'playerleft.png',
         playerRight: 'playerright.png',
-        goon1: 'Goon1.png',
+        imp: 'Goon1.png',
         bg1: '1.png',
         bg2: '2.png',
         bg3: '3.png',
@@ -178,12 +178,26 @@ function drawPlayer() {
     }
 }
 
+function getImpFrame(dir, frame) {
+    if (dir == 'right') {
+        if (frame <= 5) return { sx: frame * 32, sy: 64 };
+        return { sx: 0, sy: 96 };
+    }
+    if (dir == 'left') {
+        if (frame <= 4) return { sx: (frame + 1) * 32, sy: 96 };
+        return { sx: (frame - 5) * 32, sy: 128 };
+    }
+    if (dir == 'up') return { sx: frame * 32, sy: 32 };
+    return { sx: frame * 32, sy: 0 };
+}
+
 function drawEnemy(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
-    if (enemy.type == 'goon' && imagesLoaded && gameImages.goon1 && gameImages.goon1.naturalWidth > 0) {
-        ctx.drawImage(gameImages.goon1, 0, 0, enemy.width, enemy.height);
+    if (enemy.type == 'goon' && imagesLoaded && gameImages.imp && gameImages.imp.naturalWidth > 0) {
+        let f = getImpFrame(enemy.moveDir, enemy.animFrame);
+        ctx.drawImage(gameImages.imp, f.sx, f.sy, 32, 32, 0, 0, enemy.width, enemy.height);
     } else {
         drawRect(0, 0, enemy.width, enemy.height, enemy.color);
     }
@@ -417,6 +431,9 @@ function spawnEnemy() {
         color: typeConfig.color,
         pathIndex: 0,
         value: xp,
+        animFrame: 0,
+        animTimer: 0,
+        moveDir: 'right',
         statusEffects: {
             burning: { duration: 0, damageInterval: 0.5, damageTimer: 0, damageAmount: 0 },
             slowed: { duration: 0, speedMultiplier: 1 }
@@ -484,6 +501,19 @@ function moveEnemies() {
         } else {
             enemy.x += (dx / dist) * moveAmt;
             enemy.y += (dy / dist) * moveAmt;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                enemy.moveDir = dx > 0 ? 'right' : 'left';
+            } else {
+                enemy.moveDir = dy > 0 ? 'front' : 'up';
+            }
+
+            let maxFrame = (enemy.moveDir == 'right' || enemy.moveDir == 'left') ? 7 : 6;
+            enemy.animTimer += deltaTime;
+            if (enemy.animTimer >= 0.1) {
+                enemy.animTimer = 0;
+                enemy.animFrame = (enemy.animFrame + 1) % maxFrame;
+            }
         }
     }
 }
