@@ -2,6 +2,7 @@ function loadImages() {
     let imageSources = {
         angel: 'angel.png',
         imp:   'Goon1.png',
+        tank:  'tank.png',
         bg1:   '1.png',
         bg2:   '2.png',
         bg3:   '3.png',
