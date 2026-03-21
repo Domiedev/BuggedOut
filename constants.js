@@ -23,7 +23,7 @@ const enemyPath = [
 
 const ENEMY_TYPES = {
     goon:     { name: "Goon",     health: 50,  speed: 50,  color: '#FF0000', xp: 50,  width: 28, height: 24, description: "Standard slime bug enemy." },
-    tank:     { name: "Tank",     health: 200, speed: 30,  color: '#8B0000', xp: 150, width: 40, height: 40, description: "Slow, but very high health." },
+    tank:     { name: "Tank",     health: 200, speed: 30,  color: '#8B0000', xp: 150, width: 90, height: 64, description: "Slow, but very high health." },
     sprinter: { name: "Sprinter", health: 30,  speed: 120, color: '#FFA500', xp: 75,  width: 25, height: 25, description: "Very fast, but low health." }
 };
 
