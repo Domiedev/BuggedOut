@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bugged Out - Final Structure</title> <link rel="stylesheet" href="style.css">
+    <title>Bugged Out - Final Structure</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <h1>BUGGED OUT</h1>
-
     <canvas id="gameCanvas" width="800" height="600"></canvas>
-
     <div id="ui-layer">
         <button id="playButton">Play</button>
         <button id="retryButton">Retry</button>
@@ -20,18 +19,26 @@
             <button class="perkButton" data-perk="shotgun">Shotgun (Projectiles +2)</button>
         </div>
     </div>
-
     <div id="infoPopup" class="popup">
         <p id="infoText">Hier steht die Gegnerinfo...</p>
         <button id="infoOkButton">OK</button>
     </div>
-
     <div id="lootboxPopup" class="popup">
         <p id="lootboxText">Lootbox Text...</p>
         <button id="lootboxOpenButton">Open!</button>
-        <button id="lootboxOkButton" style="display: none;">OK</button> </div>
+        <button id="lootboxOkButton" style="display: none;">OK</button>
+    </div>
 
-
-    <script src="script.js"></script>
+    <script src="constants.js"></script>
+    <script src="state.js"></script>
+    <script src="utils.js"></script>
+    <script src="assets.js"></script>
+    <script src="player.js"></script>
+    <script src="enemies.js"></script>
+    <script src="projectiles.js"></script>
+    <script src="towers.js"></script>
+    <script src="lootbox.js"></script>
+    <script src="ui.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
