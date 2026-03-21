@@ -18,6 +18,8 @@ function drawEnemy(enemy) {
     if (enemy.type == 'goon' && imagesLoaded && gameImages.imp && gameImages.imp.naturalWidth > 0) {
         let f = getImpFrame(enemy.moveDir, enemy.animFrame);
         ctx.drawImage(gameImages.imp, f.sx, f.sy, 32, 32, 0, 0, enemy.width, enemy.height);
+    } else if (enemy.type == 'tank' && imagesLoaded && gameImages.tank && gameImages.tank.naturalWidth > 0) {
+        ctx.drawImage(gameImages.tank, 0, 0, 90, 64, 0, 0, enemy.width, enemy.height);
     } else {
         drawRect(0, 0, enemy.width, enemy.height, enemy.color);
     }
