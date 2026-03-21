@@ -134,14 +134,16 @@ function draw() {
         drawGameOverScreen();
     } else if (gameState == 'lootboxSpinning') {
         drawPath(); drawDrops(); drawTowers();
-        for (let i = 0; i < enemies.length;     i++) { if (enemies[i])     drawEnemy(enemies[i]);         }
+        for (let i = 0; i < enemies.length;     i++) { if (enemies[i] && enemies[i].type == 'tank') drawEnemy(enemies[i]); }
+        for (let i = 0; i < enemies.length;     i++) { if (enemies[i] && enemies[i].type != 'tank') drawEnemy(enemies[i]); }
         for (let i = 0; i < projectiles.length; i++) { if (projectiles[i]) drawProjectile(projectiles[i]); }
         if (player) drawPlayer();
         drawUI();
         drawLootboxSpinning();
     } else if (gameState) {
         drawPath(); drawDrops(); drawTowers();
-        for (let i = 0; i < enemies.length;     i++) { if (enemies[i])     drawEnemy(enemies[i]);         }
+        for (let i = 0; i < enemies.length;     i++) { if (enemies[i] && enemies[i].type == 'tank') drawEnemy(enemies[i]); }
+        for (let i = 0; i < enemies.length;     i++) { if (enemies[i] && enemies[i].type != 'tank') drawEnemy(enemies[i]); }
         for (let i = 0; i < projectiles.length; i++) { if (projectiles[i]) drawProjectile(projectiles[i]); }
         if (player) drawPlayer();
         drawUI();
