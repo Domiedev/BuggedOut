@@ -98,13 +98,13 @@ function applyPerk(perkType) {
     if (!player || gameState != 'selectingPerk') return;
 
     if (perkType == 'speed') {
-        player.shootSpeedMultiplier *= 1.1;
+        player.shootSpeedMultiplier *= 4;
         player.currentShootInterval = BASE_SHOOT_INTERVAL / player.shootSpeedMultiplier;
     } else if (perkType == 'damage') {
-        player.damageMultiplier *= 1.1;
+        player.damageMultiplier *= 4;
         player.currentDamage = BASE_PROJECTILE_DAMAGE * player.damageMultiplier;
     } else if (perkType == 'shotgun') {
-        player.projectileCount = Math.min(16, player.projectileCount + 2);
+        player.projectileCount = Math.min(16, player.projectileCount + 9);
     }
 
     player.level++;
