@@ -53,8 +53,9 @@ const INTERMISSION_DURATION = 10;
 const PLAYER_BASE_SPEED = 200;
 const BASE_SHOOT_INTERVAL = 0.75;
 const BASE_PROJECTILE_DAMAGE = 25;
-const PLAYER_WIDTH = 28;
-const PLAYER_HEIGHT = 32;
+const PLAYER_WIDTH = 64;
+const PLAYER_HEIGHT = 64;
+const PLAYER_SHOOT_RADIUS = 220;
 const ENEMY_DROP_CHANCE = 0.02;
 const LOOTBOX_SPIN_DURATION = 4.0;
 const LOOTBOX_ITEM_WIDTH = 80;
@@ -119,10 +120,7 @@ function distanceSq(x1, y1, x2, y2) {
 
 function loadImages() {
     let imageSources = {
-        playerUp: 'playerup.png',
-        playerDown: 'playerdown.png',
-        playerLeft: 'playerleft.png',
-        playerRight: 'playerright.png',
+        angel: 'angel.png',
         imp: 'Goon1.png',
         bg1: '1.png',
         bg2: '2.png',
@@ -154,25 +152,34 @@ function loadImages() {
 }
 
 function drawPlayer() {
-    if (!imagesLoaded) return;
+    if (!imagesLoaded || !player) return;
 
-    let img;
-    if (player.facingDirection == 'up') img = gameImages.playerUp;
-    else if (player.facingDirection == 'left') img = gameImages.playerLeft;
-    else if (player.facingDirection == 'right') img = gameImages.playerRight;
-    else img = gameImages.playerDown;
+    let pcx = player.x + player.width / 2;
+    let pcy = player.y + player.height / 2;
+
+    ctx.save();
+    ctx.strokeStyle = player.isEvil ? 'rgba(255, 60, 60, 0.25)' : 'rgba(255, 220, 80, 0.2)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(pcx, pcy, PLAYER_SHOOT_RADIUS, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
 
     if (nearestEnemyForLaser) {
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255, 50, 50, 0.85)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(player.x + player.width / 2, player.y + player.height / 2);
+        ctx.moveTo(pcx, pcy);
         ctx.lineTo(nearestEnemyForLaser.x + nearestEnemyForLaser.width / 2, nearestEnemyForLaser.y + nearestEnemyForLaser.height / 2);
         ctx.stroke();
+        ctx.lineWidth = 1;
     }
 
-    if (img && img.naturalWidth > 0) {
-        ctx.drawImage(img, player.x, player.y, player.width, player.height);
+    let sheet = gameImages.angel;
+    if (sheet && sheet.naturalWidth > 0) {
+        let startFrame = player.isEvil ? 0 : 4;
+        let frame = startFrame + player.animFrame;
+        ctx.drawImage(sheet, frame * 64, 0, 64, 64, player.x, player.y, player.width, player.height);
     } else {
         drawRect(player.x, player.y, player.width, player.height, 'blue');
     }
@@ -227,8 +234,8 @@ function drawProjectile(p) {
 }
 
 function drawPath() {
-    ctx.strokeStyle = 'grey';
-    ctx.lineWidth = 20;
+    ctx.strokeStyle = '#C8960C';
+    ctx.lineWidth = 22;
     ctx.beginPath();
     ctx.moveTo(enemyPath[0].x, enemyPath[0].y);
     for (let i = 1; i < enemyPath.length; i++) {
@@ -318,14 +325,32 @@ function drawUI() {
 }
 
 function drawStartScreen() {
-    ctx.font = "bold 70px Arial";
-    ctx.fillStyle = '#3498db';
+    let cx = canvas.width / 2;
+    let ty = canvas.height / 2 - 60;
+
+    ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText("BUGGED OUT", canvas.width / 2, canvas.height / 2 - 60);
-    drawText("Click the 'Play' button below to begin!", canvas.width / 2, canvas.height / 2 + 40, 'white', '22px');
-    drawText("Use Arrow Keys or WASD to Move", canvas.width / 2, canvas.height / 2 + 75, '#bdc3c7', '16px');
-    drawText("Spacebar Skips Intermission", canvas.width / 2, canvas.height / 2 + 100, '#bdc3c7', '16px');
+
+    ctx.font = "bold 74px Georgia, 'Times New Roman', serif";
+    ctx.shadowColor = '#B8860B';
+    ctx.shadowBlur = 18;
+
+    let grad = ctx.createLinearGradient(cx - 220, ty - 40, cx + 220, ty + 40);
+    grad.addColorStop(0,   '#7B4F00');
+    grad.addColorStop(0.3, '#FFD700');
+    grad.addColorStop(0.5, '#FFF8A0');
+    grad.addColorStop(0.7, '#FFD700');
+    grad.addColorStop(1,   '#7B4F00');
+    ctx.fillStyle = grad;
+    ctx.fillText("BUGGED OUT", cx, ty);
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    drawText("Click the 'Play' button below to begin!", cx, canvas.height / 2 + 40, 'white', '22px');
+    drawText("Use Arrow Keys or WASD to Move", cx, canvas.height / 2 + 75, '#bdc3c7', '16px');
+    drawText("Spacebar Skips Intermission", cx, canvas.height / 2 + 100, '#bdc3c7', '16px');
 }
 
 function drawGameOverScreen() {
@@ -525,15 +550,17 @@ function findNearestEnemy() {
     let minDist = Infinity;
     let pcx = player.x + player.width / 2;
     let pcy = player.y + player.height / 2;
+    let radiusSq = PLAYER_SHOOT_RADIUS * PLAYER_SHOOT_RADIUS;
     for (let i = 0; i < enemies.length; i++) {
         let e = enemies[i];
         let d = distanceSq(pcx, pcy, e.x + e.width / 2, e.y + e.height / 2);
-        if (d < minDist) {
+        if (d < radiusSq && d < minDist) {
             minDist = d;
             nearest = e;
         }
     }
     nearestEnemyForLaser = nearest;
+    player.isEvil = nearest != null;
     return nearest;
 }
 
@@ -931,7 +958,9 @@ function resetGame() {
         projectileCount: 1,
         currentShootInterval: BASE_SHOOT_INTERVAL,
         currentDamage: BASE_PROJECTILE_DAMAGE,
-        facingDirection: 'down'
+        animFrame: 0,
+        animTimer: 0,
+        isEvil: false
     };
     enemies = [];
     projectiles = [];
@@ -964,6 +993,12 @@ function update() {
         moveProjectiles();
         updateTowers();
         nearestEnemyForLaser = findNearestEnemy();
+
+        player.animTimer += deltaTime;
+        if (player.animTimer >= 0.12) {
+            player.animTimer = 0;
+            player.animFrame = (player.animFrame + 1) % 4;
+        }
     }
 
     if (gameState == 'playing') {
