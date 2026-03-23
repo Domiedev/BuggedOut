@@ -137,3 +137,43 @@ function drawLootboxSpinning() {
     ctx.closePath();
     ctx.fill();
 }
+
+function drawPlacementMode() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (placingTowerType == 'trap') {
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.9)';
+        ctx.lineWidth = 24;
+        ctx.beginPath();
+        ctx.moveTo(enemyPath[0].x, enemyPath[0].y);
+        for (let i = 1; i < enemyPath.length; i++) {
+            ctx.lineTo(enemyPath[i].x, enemyPath[i].y);
+        }
+        ctx.stroke();
+        ctx.lineWidth = 1;
+    }
+
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.translate(placingTowerX, placingTowerY);
+    let w = 30, h = 30;
+    drawRect(w * 0.1, h * 0.7, w * 0.8, h * 0.3, '#555');
+
+    if (placingTowerType == 'sniper') {
+        drawRect(w * 0.4,  0,       w * 0.2, h * 0.8,  TOWER_TYPES.sniper.color);
+        drawRect(w * 0.25, h * 0.5, w * 0.5, h * 0.25, '#444');
+        drawRect(w * 0.3,  h * 0.4, w * 0.4, h * 0.1,  '#333');
+    } else if (placingTowerType == 'trap') {
+        drawRect(w * 0.1, h * 0.7, w * 0.8, h * 0.2, '#888');
+        ctx.fillStyle = '#A9A9A9';
+        ctx.beginPath();
+        ctx.moveTo(w * 0.2, h * 0.8); ctx.lineTo(w * 0.3, h * 0.3); ctx.lineTo(w * 0.4, h * 0.8);
+        ctx.moveTo(w * 0.6, h * 0.8); ctx.lineTo(w * 0.7, h * 0.3); ctx.lineTo(w * 0.8, h * 0.8);
+        ctx.fill();
+    }
+
+    ctx.restore();
+
+    drawText('Press ENTER to place', canvas.width / 2, 30, '#FFD700', '22px');
+}
