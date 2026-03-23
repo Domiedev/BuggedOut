@@ -15,6 +15,7 @@ const lootboxOkButton  = document.getElementById('lootboxOkButton');
 
 let gameImages = {};
 let imagesLoaded = false;
+let shootSound = null;
 
 let gameState;
 let nextStateAfterPopup = 'playing';
