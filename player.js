@@ -122,4 +122,9 @@ function shoot() {
         });
     }
     shootTimer = player.currentShootInterval;
+
+    if (shootSound) {
+        shootSound.currentTime = 0;
+        shootSound.play();
+    }
 }
