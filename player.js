@@ -5,7 +5,7 @@ function drawPlayer() {
     let pcy = player.y + player.height / 2;
 
     ctx.save();
-    ctx.strokeStyle = player.isEvil ? 'rgba(255, 60, 60, 0.25)' : 'rgba(255, 220, 80, 0.2)';
+    ctx.strokeStyle = player.isEvil ? 'rgba(255, 60, 60, 0.6)' : 'rgba(255, 220, 80, 0.5)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(pcx, pcy, PLAYER_SHOOT_RADIUS, 0, Math.PI * 2);
