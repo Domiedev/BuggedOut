@@ -66,9 +66,9 @@ function revealLootboxReward() {
         rewardText = "You won " + lootboxFinalItem.value + " Level(s)!";
         pendingLevelUps = lootboxFinalItem.value;
     } else if (lootboxFinalItem.type == 'tower') {
-        let ok = placeRandomTower(lootboxFinalItem.value);
-        if (ok) rewardText = "You received a " + TOWER_TYPES[lootboxFinalItem.value].name + "!";
-        else { rewardText = "No space for a tower! (+500 XP instead)"; gainXP(500); }
+        let typeKey = lootboxFinalItem.value;
+        rewardText = "You received a " + TOWER_TYPES[typeKey].name + "! Place it!";
+        pendingTowerPlacement = typeKey;
     } else {
         rewardText = "Unknown reward!?";
     }
