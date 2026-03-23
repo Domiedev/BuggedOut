@@ -85,9 +85,9 @@ function drawStartScreen() {
     ctx.shadowBlur = 0;
     ctx.restore();
 
-    drawText("Click the 'Play' button below to begin!", cx, canvas.height / 2 + 40, 'white', '22px');
-    drawText("Use Arrow Keys or WASD to Move",          cx, canvas.height / 2 + 75, '#bdc3c7', '16px');
-    drawText("Spacebar Skips Intermission",             cx, canvas.height / 2 + 100, '#bdc3c7', '16px');
+    drawText("Click the 'Play' button below to begin!", cx, canvas.height / 2 + 40, '#FFD700', '22px');
+    drawText("Use Arrow Keys or WASD to Move",          cx, canvas.height / 2 + 75, '#C8960C', '16px');
+    drawText("Spacebar Skips Intermission",             cx, canvas.height / 2 + 100, '#C8960C', '16px');
 }
 
 function drawGameOverScreen() {
