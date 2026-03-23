@@ -1,5 +1,14 @@
 function drawProjectile(p) {
-    drawRect(p.x, p.y, p.width, p.height, p.color);
+    if (p.isSniperBolt) {
+        ctx.save();
+        ctx.fillStyle = '#00BFFF';
+        ctx.shadowColor = '#00BFFF';
+        ctx.shadowBlur = 10;
+        ctx.fillRect(p.x, p.y, p.width, p.height);
+        ctx.restore();
+    } else {
+        drawRect(p.x, p.y, p.width, p.height, p.color);
+    }
 }
 
 function moveProjectiles() {
