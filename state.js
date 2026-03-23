@@ -17,6 +17,11 @@ let gameImages = {};
 let imagesLoaded = false;
 let shootSound = null;
 
+let placingTowerType = null;
+let placingTowerX = 400;
+let placingTowerY = 300;
+let pendingTowerPlacement = null;
+
 let gameState;
 let nextStateAfterPopup = 'playing';
 let lastTimestamp = 0;
