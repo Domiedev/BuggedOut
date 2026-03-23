@@ -28,19 +28,20 @@ const ENEMY_TYPES = {
 };
 
 const TOWER_TYPES = {
-    flamethrower: { name: "Flamethrower", color: '#FF4500', range: 100, cooldown: 0.1, burnDuration: 2.0, burnDamagePerSecond: 5, vulnerability: 1.25, cost: 0 },
-    sniper:       { name: "Sniper",       color: '#006400', range: 400, cooldown: 3.0, baseDamage: 100, chargeRate: 1.0, maxCharge: 100, cost: 0 },
-    trap:         { name: "Spike Trap",   color: '#696969', range: 15,  cooldown: 5.0, damage: 20, slowDuration: 3.0, slowFactor: 0.5, activeDuration: 0.5, cost: 0 }
+    // flamethrower removed for now — keep for later
+    // flamethrower: { name: "Flamethrower", color: '#FF4500', range: 100, cooldown: 0.1, burnDuration: 2.0, burnDamagePerSecond: 5, vulnerability: 1.25, cost: 0 },
+    sniper: { name: "Sniper", color: '#006400', range: 500, cooldown: 0.1, baseDamage: 120, chargeRate: 20, maxCharge: 100, cost: 0 },
+    trap:   { name: "Spike Trap", color: '#696969', range: 20, cooldown: 4.0, damage: 15, slowDuration: 3.0, slowFactor: 0.2, activeDuration: 0.5, cost: 0 }
 };
 
 const LOOTBOX_POSSIBLE_ITEMS = [
-    { type: 'level', value: 1, display: { color: 'yellow',  text: "+1 LVL" } },
-    { type: 'level', value: 2, display: { color: 'orange',  text: "+2 LVL" } },
-    { type: 'level', value: 3, display: { color: 'red',     text: "+3 LVL" } },
-    { type: 'tower', value: 'flamethrower', display: { color: '#FF4500', text: "Flamer" } },
-    { type: 'tower', value: 'sniper',       display: { color: '#006400', text: "Sniper" } },
-    { type: 'tower', value: 'trap',         display: { color: '#696969', text: "Trap"   } },
-    { type: 'level', value: 1, display: { color: 'yellow',  text: "+1 LVL" } },
-    { type: 'tower', value: 'trap',         display: { color: '#696969', text: "Trap"   } },
-    { type: 'level', value: 1, display: { color: 'yellow',  text: "+1 LVL" } }
+    { type: 'level', value: 1, display: { color: 'yellow', text: "+1 LVL" } },
+    { type: 'level', value: 2, display: { color: 'orange', text: "+2 LVL" } },
+    { type: 'level', value: 3, display: { color: 'red',    text: "+3 LVL" } },
+    { type: 'tower', value: 'sniper', display: { color: '#006400', text: "Sniper" } },
+    { type: 'tower', value: 'trap',   display: { color: '#696969', text: "Trap"   } },
+    { type: 'level', value: 1, display: { color: 'yellow', text: "+1 LVL" } },
+    { type: 'tower', value: 'trap',   display: { color: '#696969', text: "Trap"   } },
+    { type: 'level', value: 1, display: { color: 'yellow', text: "+1 LVL" } },
+    { type: 'tower', value: 'sniper', display: { color: '#006400', text: "Sniper" } }
 ];
