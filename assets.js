@@ -30,4 +30,7 @@ function loadImages() {
         };
         img.src = imageSources[key];
     }
+
+    shootSound = new Audio('shoot.mp3');
+    shootSound.volume = 0.4;
 }
