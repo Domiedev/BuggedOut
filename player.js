@@ -82,16 +82,16 @@ function findNearestEnemy() {
     return nearest;
 }
 
-function findStrongestEnemy() {
-    let strongest = null;
+function findHighestHealthEnemy() {
+    let target = null;
     let maxHp = -1;
     for (let i = 0; i < enemies.length; i++) {
-        if (enemies[i].maxHealth > maxHp) {
-            maxHp = enemies[i].maxHealth;
-            strongest = enemies[i];
+        if (enemies[i].currentHealth > maxHp) {
+            maxHp = enemies[i].currentHealth;
+            target = enemies[i];
         }
     }
-    return strongest;
+    return target;
 }
 
 function shoot() {
