@@ -98,6 +98,21 @@ function update() {
             enemySpawnTimer = 0;
             if (!checkNewEnemyIntroduction()) setGameState('playing');
         }
+    } else if (gameState == 'placingTower') {
+        let moveSpeed = 180;
+        if (keys['ArrowUp']    || keys['w']) placingTowerY -= moveSpeed * deltaTime;
+        if (keys['ArrowDown']  || keys['s']) placingTowerY += moveSpeed * deltaTime;
+        if (keys['ArrowLeft']  || keys['a']) placingTowerX -= moveSpeed * deltaTime;
+        if (keys['ArrowRight'] || keys['d']) placingTowerX += moveSpeed * deltaTime;
+
+        placingTowerX = Math.max(0, Math.min(canvas.width  - 30, placingTowerX));
+        placingTowerY = Math.max(0, Math.min(canvas.height - 30, placingTowerY));
+
+        if (placingTowerType == 'trap') {
+            let snapped = snapToPath(placingTowerX + 15, placingTowerY + 15);
+            placingTowerX = snapped.x - 15;
+            placingTowerY = snapped.y - 15;
+        }
     } else if (gameState == 'lootboxSpinning') {
         if (lootboxSpinningTimer > 0) {
             lootboxSpinningTimer -= deltaTime;
@@ -140,6 +155,14 @@ function draw() {
         if (player) drawPlayer();
         drawUI();
         drawLootboxSpinning();
+    } else if (gameState == 'placingTower') {
+        drawPath(); drawDrops(); drawTowers();
+        for (let i = 0; i < enemies.length;     i++) { if (enemies[i] && enemies[i].type == 'tank') drawEnemy(enemies[i]); }
+        for (let i = 0; i < enemies.length;     i++) { if (enemies[i] && enemies[i].type != 'tank') drawEnemy(enemies[i]); }
+        for (let i = 0; i < projectiles.length; i++) { if (projectiles[i]) drawProjectile(projectiles[i]); }
+        if (player) drawPlayer();
+        drawUI();
+        drawPlacementMode();
     } else if (gameState) {
         drawPath(); drawDrops(); drawTowers();
         for (let i = 0; i < enemies.length;     i++) { if (enemies[i] && enemies[i].type == 'tank') drawEnemy(enemies[i]); }
@@ -174,7 +197,7 @@ function gameLoop(timestamp) {
 }
 
 window.addEventListener('keydown', function(e) {
-    if (gameState == 'playing' || gameState == 'betweenWaves') keys[e.key] = true;
+    if (gameState == 'playing' || gameState == 'betweenWaves' || gameState == 'placingTower') keys[e.key] = true;
 
     if (e.code == 'Space' && gameState == 'betweenWaves') {
         intermissionTimer = 0;
@@ -183,6 +206,10 @@ window.addEventListener('keydown', function(e) {
     if (e.code == 'Space' && gameState == 'lootboxSpinning') {
         revealLootboxReward();
         lootboxSpinningTimer = 0;
+        e.preventDefault();
+    }
+    if (e.code == 'Enter' && gameState == 'placingTower') {
+        confirmTowerPlacement();
         e.preventDefault();
     }
 });
@@ -218,9 +245,15 @@ if (lootboxOpenButton) lootboxOpenButton.addEventListener('click', function() {
 
 if (lootboxOkButton) lootboxOkButton.addEventListener('click', function() {
     if (gameState == 'lootboxRevealing') {
-        if (pendingLevelUps > 0) setGameState('selectingPerk');
-        else setGameState(nextStateAfterPopup);
         lootboxOkButton.style.display = 'none';
+        if (pendingLevelUps > 0) {
+            setGameState('selectingPerk');
+        } else if (pendingTowerPlacement) {
+            startTowerPlacement(pendingTowerPlacement);
+            pendingTowerPlacement = null;
+        } else {
+            setGameState(nextStateAfterPopup);
+        }
     }
 });
 
