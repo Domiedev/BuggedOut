@@ -80,7 +80,7 @@ function drawStartScreen() {
     grad.addColorStop(0.7, '#FFD700');
     grad.addColorStop(1,   '#7B4F00');
     ctx.fillStyle = grad;
-    ctx.fillText("BUGGED OUT", cx, ty);
+    ctx.fillText("NEW CREATION", cx, ty);
 
     ctx.shadowBlur = 0;
     ctx.restore();
